@@ -115,8 +115,7 @@ in Phase 3.
 - [x] The same entity extracted from two units yields one entity, two citations.
 
 Merging already-stored entities and a review queue are Phase 4 work. The
-0.92 cosine merge threshold is uncalibrated until the embedding model runs on
-real data; integration tests use a fake embedder.
+0.95 cosine merge threshold is checked on six pairs only, not calibrated; integration tests use a fake embedder.
 
 ## 4. Graph write
 

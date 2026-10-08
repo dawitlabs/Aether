@@ -20,9 +20,11 @@ from aether.extraction.llm import LLMClient
 from aether.storage.knowledge import DuplicateRecordError, Neo4jKnowledgeStore, name_key
 from aether.storage.vectors import LanceVectorIndex
 
-# ponytail: one global cosine threshold, not yet calibrated; too low merges
-# different people with similar names. Calibrate per embedding model on real data.
-MERGE_SIMILARITY = 0.92
+# ponytail: one global cosine threshold, checked on six all-minilm pairs only:
+# "Acme Corp"/"Acme Corporation" 0.96, "University of Paris"/"Sorbonne" 0.93,
+# "Marie"/"Pierre Curie" 0.84. A wrong merge is worse than a duplicate, so it
+# errs high. Recalibrate on a labelled set when changing the embedding model.
+MERGE_SIMILARITY = 0.95
 
 
 def unit_vector(vector: list[float]) -> list[float]:

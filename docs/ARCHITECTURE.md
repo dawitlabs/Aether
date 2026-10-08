@@ -122,7 +122,7 @@ Extraction rules (`src/aether/extraction/`):
   whose excerpt is not in the text unit, and relationships whose ends were not
   extracted, are dropped.
 - `pipeline.py` resolves each entity to an existing active entity of the same
-  type by exact name key, then by embedding cosine >= 0.92; otherwise it creates
+  type by exact name key, then by embedding cosine >= 0.95; otherwise it creates
   one. A match appends a `CITES` edge to the existing entity.
 - One transaction per text unit writes new entities, citations, relationships,
   and an `:Extraction {key: "<unit id>|<prompt version>/<model>"}` marker. Its
