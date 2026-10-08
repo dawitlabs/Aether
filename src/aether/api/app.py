@@ -69,7 +69,7 @@ class Settings(BaseModel):
     llm_model: str = "gpt-oss:120b-cloud"
     llm_api_key: str | None = Field(default=None, repr=False)
     embed_base_url: str = "http://127.0.0.1:11434/v1"
-    embed_model: str = "nomic-embed-text"
+    embed_model: str = "all-minilm"
     embed_api_key: str | None = Field(default=None, repr=False)
 
     @classmethod

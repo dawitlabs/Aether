@@ -83,7 +83,8 @@ Goal: turn stored text units into a queryable graph with provenance.
 LLM decision: everything must run at zero cost. Chat defaults to
 `gpt-oss:120b-cloud` through Ollama's free tier (verified 2026-10-08; most
 other cloud models return HTTP 402 without credits), with a small local model
-as fallback. Embeddings use local `nomic-embed-text`. The
+as fallback. Embeddings use local `all-minilm` (46 MB; `nomic-embed-text`
+would not download on the development connection). The
 client speaks the OpenAI-compatible API, so switching provider is
 configuration only (`LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, and
 `EMBED_*` equivalents).
@@ -114,7 +115,7 @@ in Phase 3.
 - [x] The same entity extracted from two units yields one entity, two citations.
 
 Merging already-stored entities and a review queue are Phase 4 work. The
-0.92 cosine merge threshold is uncalibrated until `nomic-embed-text` runs on
+0.92 cosine merge threshold is uncalibrated until the embedding model runs on
 real data; integration tests use a fake embedder.
 
 ## 4. Graph write

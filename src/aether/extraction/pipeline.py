@@ -20,8 +20,8 @@ from aether.extraction.llm import LLMClient
 from aether.storage.knowledge import DuplicateRecordError, Neo4jKnowledgeStore, name_key
 from aether.storage.vectors import LanceVectorIndex
 
-# ponytail: one global cosine threshold, tuned by eye on nomic-embed-text; too low
-# merges different people with similar names. Calibrate on real data.
+# ponytail: one global cosine threshold, not yet calibrated; too low merges
+# different people with similar names. Calibrate per embedding model on real data.
 MERGE_SIMILARITY = 0.92
 
 
