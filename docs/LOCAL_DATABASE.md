@@ -73,14 +73,11 @@ With the local instance running:
 python scripts/check_neo4j_restart.py
 ```
 
-This checks that invalid credentials fail, writes a uniquely identified probe,
-stops and starts the local server, retrieves the probe, and deletes only that
-probe afterward. It leaves the server running. Do not run it during other local
-database work. If restart fails, the probe may remain until manually removed;
-the script does not delete application records.
-
-This demonstrates database durability, not Aether model persistence. The graph
-schema, repository methods, and backup/restore procedure are subsequent tasks.
+This checks that invalid credentials fail, then saves a text unit, two
+entities, a relationship, and a claim through Aether's stores. It stops and
+starts the server, reads each record back, and requires it to equal the
+original. It deletes only the records it created and leaves the server running.
+Do not run it during other local database work.
 
 ## Backup and restore
 

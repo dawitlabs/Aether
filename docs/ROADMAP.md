@@ -35,7 +35,7 @@ The instance was stopped cleanly after verification. See [runtime guide](LOCAL_D
 
 - [x] Add versioned, repeatable schema initialization and UUID constraints.
 - [x] Implement text-unit create, read/list, update, and guarded delete first.
-- [ ] Verify complete round trips, duplicate-ID handling, and restart durability.
+- [x] Verify complete round trips, duplicate-ID handling, and restart durability.
 - [x] Add entities, relationships, and claims with transactional evidence links.
 - [x] Reject missing references and prove rollback on failed writes.
 - [x] Preserve distinct source occurrences when text hashes match.
