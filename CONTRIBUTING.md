@@ -48,6 +48,17 @@ leaving it restores your previous environment. You do not need to run
 python -m pytest -q
 ```
 
+## Running the API
+
+From the project root, with Neo4j started:
+
+```bash
+uvicorn --factory aether.api.app:create_app
+```
+
+It reads the `NEO4J_*` settings from `.env`. Check `/health` (process up) and
+`/ready` (database reachable); OpenAPI docs are at `/docs`.
+
 ## Making changes
 
 - Keep changes focused on one task.

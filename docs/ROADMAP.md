@@ -54,10 +54,10 @@ Exit: an index round trip works without requiring an LLM or extraction pipeline.
 
 ## 4. FastAPI skeleton
 
-- [ ] Add `/health` and generated OpenAPI.
-- [ ] Manage database connections through application startup/shutdown.
-- [ ] Distinguish process health from database readiness.
-- [ ] Test the API lifecycle and database-unavailable behavior.
+- [x] Add `/health` and generated OpenAPI.
+- [x] Manage database connections through application startup/shutdown.
+- [x] Distinguish process health from database readiness.
+- [x] Test the API lifecycle and database-unavailable behavior.
 
 ## 5. Minimal document ingestion
 

@@ -14,7 +14,7 @@ has passed authenticated connectivity and a database-restart durability check.
 
 Implemented storage: create/read for all four models; text-unit update and
 guarded delete. LanceDB embedding index (`storage/vectors.py`). Not implemented:
-entity/relationship/claim updates and deletes, FastAPI, ingestion,
+entity/relationship/claim updates and deletes, ingestion,
 extraction, retrieval, or contribution review workflows. Model validation does
 not prove that referenced records exist or authorize a claim's verification.
 
@@ -44,7 +44,7 @@ Application -> LanceDB (derived embedding index; .local/lancedb)
 | Graph storage | Local Neo4j Community; official Python driver |
 | Original documents | Local filesystem initially |
 | Embedding index | LanceDB 0.40.0, one table per model and dimension count |
-| API | FastAPI, introduced after basic persistence |
+| API | FastAPI 0.143.0 on Uvicorn 0.54.0 (`src/aether/api/app.py`) |
 | LLM calls | Deferred until extraction; retain the planned provider abstraction |
 
 Use modules inside one application. A separate gateway, queue service, worker
@@ -93,6 +93,11 @@ safe. Vectors must match the table's dimension count and be finite. To rebuild,
 delete the index directory and re-upsert from the embeddings stored in Neo4j.
 The dev shell sets `LD_LIBRARY_PATH` to Nix's C++ runtime because the prebuilt
 numpy, pyarrow, and lancedb wheels need it.
+
+API rules: `/health` reports process liveness and never touches the database.
+`/ready` runs one authenticated query without retries and returns 503 when
+Neo4j is unreachable, without exposing error details. The driver opens at
+startup and closes at shutdown; the API starts even while Neo4j is down.
 
 ## Local operation
 

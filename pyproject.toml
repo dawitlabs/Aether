@@ -12,6 +12,8 @@ dependencies = [
     "neo4j==6.4.0",
     "python-dotenv==1.2.4",
     "lancedb==0.40.0",
+    "fastapi==0.143.0",
+    "uvicorn==0.54.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -20,4 +22,5 @@ where = ["src"]
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "httpx2==2.13.1",
 ]
