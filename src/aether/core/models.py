@@ -134,3 +134,11 @@ class Document(BaseModel):
     content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     text_unit_count: int = Field(ge=1)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class Community(BaseModel):
+    """A Leiden cluster of entities; derived data, replaced on every rebuild."""
+
+    id: UUID = Field(default_factory=uuid4)
+    entity_ids: list[UUID] = Field(min_length=2)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

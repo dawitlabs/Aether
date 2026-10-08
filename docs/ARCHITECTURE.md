@@ -145,6 +145,14 @@ Query rules (`src/aether/storage/graph.py`, `src/aether/query.py`):
   that set are dropped. With no matching entities the model is not called.
 - Provider failures return 502 without details.
 
+Community rules (`src/aether/communities/`, `storage/communities.py`):
+
+- Leiden (networkx, modularity metric, seed 42) over active entities;
+  parallel relationship weights add. Single level; singletons are dropped.
+- `POST /communities/rebuild` queues on the extraction worker and replaces
+  every `:Community` node and `IN_COMMUNITY` edge in one transaction.
+  Community IDs change on each rebuild.
+
 ## Local operation
 
 Neo4j runs separately from the Python application. Bind the development database

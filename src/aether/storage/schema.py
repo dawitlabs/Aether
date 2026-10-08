@@ -1,9 +1,10 @@
-"""Version 1: record identity and document lookup. Version 2: extraction."""
+"""Version 1: record identity and document lookup. Version 2: extraction.
+Version 3: communities."""
 
 from neo4j import Driver
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 V1_STATEMENTS = (
     "CREATE CONSTRAINT aether_v1_text_unit_id IF NOT EXISTS "
     "FOR (t:TextUnit) REQUIRE t.id IS UNIQUE",
@@ -26,6 +27,10 @@ V2_STATEMENTS = (
     "CREATE INDEX aether_v2_entity_name_key IF NOT EXISTS "
     "FOR (e:Entity) ON (e.name_key, e.type)",
 )
+V3_STATEMENTS = (
+    "CREATE CONSTRAINT aether_v3_community_id IF NOT EXISTS "
+    "FOR (c:Community) REQUIRE c.id IS UNIQUE",
+)
 
 
 def ensure_schema(driver: Driver, database: str) -> None:
@@ -36,5 +41,5 @@ def ensure_schema(driver: Driver, database: str) -> None:
     """
     # Auto-commit without retries, so an unreachable database fails fast.
     with driver.session(database=database) as session:
-        for statement in (*V1_STATEMENTS, *V2_STATEMENTS):
+        for statement in (*V1_STATEMENTS, *V2_STATEMENTS, *V3_STATEMENTS):
             session.run(statement).consume()

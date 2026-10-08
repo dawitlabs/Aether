@@ -1,17 +1,23 @@
 """Graph read and question-answering routes."""
 
-from typing import Annotated
+import logging
+from concurrent.futures import Future
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
-from aether.core.models import Entity, Relationship, TextUnit
+from aether.communities.detect import rebuild
+from aether.core.models import Community, Entity, Relationship, TextUnit
 from aether.query import Answer, answer_question
+from aether.storage.communities import Neo4jCommunityStore
 from aether.storage.graph import Neo4jGraphReader
 
+log = logging.getLogger("aether.api")
 router = APIRouter()
 UNAVAILABLE = {"description": "Database unavailable"}
+REBUILD = "communities"
 
 
 class NeighborhoodOut(BaseModel):
@@ -19,6 +25,10 @@ class NeighborhoodOut(BaseModel):
     neighbors: list[Entity]
     relationships: list[Relationship]
     text_units: list[TextUnit]
+
+
+class RebuildStatus(BaseModel):
+    status: Literal["not_started", "running", "failed", "complete"]
 
 
 class Question(BaseModel):
@@ -70,3 +80,44 @@ def query(request: Request, body: Question) -> Answer:
         graph=reader(request),
         index_path=request.app.state.config.index_dir,
     )
+
+
+def log_failure(job: Future[object]) -> None:
+    error = None if job.cancelled() else job.exception()
+    if error is not None:
+        log.warning("job.failed error=%s", type(error).__name__)
+
+
+def community_store(request: Request) -> Neo4jCommunityStore:
+    return Neo4jCommunityStore(request.app.state.driver, request.app.state.config.neo4j_database)
+
+
+def rebuild_status(request: Request) -> RebuildStatus:
+    job: Future[object] | None = request.app.state.jobs.get(REBUILD)
+    if job is None or job.cancelled():
+        return RebuildStatus(status="not_started")
+    if not job.done():
+        return RebuildStatus(status="running")
+    return RebuildStatus(status="failed" if job.exception() else "complete")
+
+
+@router.post("/communities/rebuild", status_code=202)
+def start_rebuild(request: Request) -> RebuildStatus:
+    """Replace all communities. Queued behind any running extraction."""
+    state = request.app.state
+    job = state.jobs.get(REBUILD)
+    if job is None or job.done():
+        job = state.worker.submit(rebuild, community_store(request))
+        job.add_done_callback(log_failure)
+        state.jobs[REBUILD] = job
+    return rebuild_status(request)
+
+
+@router.get("/communities/rebuild")
+def get_rebuild(request: Request) -> RebuildStatus:
+    return rebuild_status(request)
+
+
+@router.get("/communities", responses={503: UNAVAILABLE})
+def list_communities(request: Request) -> list[Community]:
+    return community_store(request).list_all()

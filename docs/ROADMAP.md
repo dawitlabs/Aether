@@ -165,9 +165,9 @@ extensions). Single-level communities only until the graph needs hierarchy.
 
 ## 2. Communities
 
-- [ ] Leiden over active entities, relationship-weighted, fixed seed.
-- [ ] A rebuild replaces all communities in one transaction.
-- [ ] `POST /communities/rebuild` runs on the extraction worker.
+- [x] Leiden over active entities, relationship-weighted, fixed seed.
+- [x] A rebuild replaces all communities in one transaction.
+- [x] `POST /communities/rebuild` runs on the extraction worker.
 
 ## 3. Community reports
 

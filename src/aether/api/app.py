@@ -17,6 +17,7 @@ from neo4j import Driver, GraphDatabase
 from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import BaseModel, ConfigDict, Field
 
+from aether.api.graph import log_failure
 from aether.api.graph import router as graph_router
 from aether.core.models import Document, TextUnit
 from aether.extraction.jobs import extract_document
@@ -245,8 +246,3 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     return app
 
-
-def log_failure(job: Future[None]) -> None:
-    error = None if job.cancelled() else job.exception()
-    if error is not None:
-        log.warning("extraction.job_failed error=%s", type(error).__name__)
