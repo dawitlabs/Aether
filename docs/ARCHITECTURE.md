@@ -12,8 +12,8 @@ Implemented: Nix development shell, direnv setup, Python package, Pydantic domai
 models, model tests, and the [local Neo4j runtime](LOCAL_DATABASE.md). The runtime
 has passed authenticated connectivity and a database-restart durability check.
 
-Implemented storage: create/read for all four models. Not implemented: updates,
-deletes, LanceDB integration, FastAPI, ingestion,
+Implemented storage: create/read for all four models; text-unit update and
+guarded delete. Not implemented: entity/relationship/claim updates and deletes, LanceDB integration, FastAPI, ingestion,
 extraction, retrieval, or contribution review workflows. Model validation does
 not prove that referenced records exist or authorize a claim's verification.
 

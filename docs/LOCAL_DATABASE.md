@@ -82,6 +82,30 @@ the script does not delete application records.
 This demonstrates database durability, not Aether model persistence. The graph
 schema, repository methods, and backup/restore procedure are subsequent tasks.
 
+## Backup and restore
+
+Community edition dumps and loads offline, so stop Neo4j first:
+
+```bash
+python scripts/local_neo4j.py stop
+python scripts/local_neo4j.py backup
+python scripts/local_neo4j.py restore .local/backups/<timestamp>
+python scripts/local_neo4j.py start
+```
+
+Backups go to `.local/backups/<UTC timestamp>/`. `restore` first backs up the
+current data, then replaces it. Only the application database is dumped; the
+`system` database (users and passwords) is left as is.
+
+To verify the round trip with the server running:
+
+```bash
+python scripts/check_neo4j_backup.py
+```
+
+It writes a probe, backs up, deletes the probe, restores, and confirms the
+probe is back. It removes its probe and the backups it created.
+
 ## References
 
 - [Neo4j file locations](https://neo4j.com/docs/operations-manual/current/configuration/file-locations/)

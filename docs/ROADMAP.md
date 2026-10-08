@@ -34,12 +34,12 @@ The instance was stopped cleanly after verification. See [runtime guide](LOCAL_D
 ## 2. Graph schema and persistence
 
 - [x] Add versioned, repeatable schema initialization and UUID constraints.
-- [ ] Implement text-unit create, read/list, update, and guarded delete first.
+- [x] Implement text-unit create, read/list, update, and guarded delete first.
 - [ ] Verify complete round trips, duplicate-ID handling, and restart durability.
 - [x] Add entities, relationships, and claims with transactional evidence links.
 - [x] Reject missing references and prove rollback on failed writes.
 - [x] Preserve distinct source occurrences when text hashes match.
-- [ ] Document and exercise local backup/restore before relying on stored data.
+- [x] Document and exercise local backup/restore before relying on stored data.
 
 Exit: basic operations work against real Neo4j and preserve provenance.
 

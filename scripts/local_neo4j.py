@@ -7,6 +7,7 @@ import secrets
 import shutil
 import subprocess
 import time
+from datetime import datetime, timezone
 
 from dotenv import dotenv_values
 from neo4j import GraphDatabase
@@ -16,6 +17,7 @@ from neo4j.exceptions import AuthError, ServiceUnavailable, SessionExpired
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL = ROOT / ".local" / "neo4j"
 ENV_FILE = ROOT / ".env"
+BACKUPS = ROOT / ".local" / "backups"
 
 
 def settings():
@@ -127,13 +129,56 @@ def check(wait=False):
                 time.sleep(1)
 
 
+def require_stopped():
+    try:
+        command("neo4j", "status", private=True)
+    except RuntimeError:
+        return
+    raise RuntimeError("Stop Neo4j first; Community edition dumps and loads offline.")
+
+
+def backup():
+    """Dump the application database to a new timestamped directory."""
+    require_stopped()
+    target = BACKUPS / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    target.mkdir(parents=True, mode=0o700)
+    command("neo4j-admin", "database", "dump", settings()["NEO4J_DATABASE"], f"--to-path={target}")
+    print(f"Backup written to {target.relative_to(ROOT)}")
+    return target
+
+
+def restore(source):
+    """Replace the application database with a dump, keeping a backup of the current data."""
+    source = Path(source).resolve()
+    database = settings()["NEO4J_DATABASE"]
+    if not (source / f"{database}.dump").is_file():
+        raise RuntimeError(f"No {database}.dump in {source}")
+    print("Backing up current data before restore.")
+    backup()
+    command(
+        "neo4j-admin", "database", "load", database,
+        f"--from-path={source}", "--overwrite-destination=true",
+    )
+    print(f"Restored {database} from {source}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("init", "start", "stop", "status", "check"))
-    action = parser.parse_args().action
+    parser.add_argument(
+        "action", choices=("init", "start", "stop", "status", "check", "backup", "restore")
+    )
+    parser.add_argument("path", nargs="?", help="backup directory for restore")
+    arguments = parser.parse_args()
+    action = arguments.action
+    if action == "restore" and arguments.path is None:
+        parser.error("restore requires a backup directory")
     try:
         if action == "init":
             initialize()
+        elif action == "backup":
+            backup()
+        elif action == "restore":
+            restore(arguments.path)
         elif action == "check":
             check()
         else:
