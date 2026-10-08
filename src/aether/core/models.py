@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from hashlib import sha256
 from typing import Self
 from uuid import UUID, uuid4
 
@@ -24,4 +25,13 @@ class TextUnit(BaseModel):
         if self.start_offset is not None and self.end_offset is not None:
             if self.end_offset <= self.start_offset:
                 raise ValueError("end_offset must be greater than start_offset")
+        return self
+
+    @model_validator(mode="after")
+    def validate_content_hash(self) -> Self:
+        expected_hash = sha256(self.text.encode("utf-8")).hexdigest()
+
+        if self.content_hash != expected_hash:
+            raise ValueError("content_hash must match text")
+
         return self
