@@ -81,8 +81,9 @@ LLM extraction, and public deployment are outside this foundation milestone.
 Goal: turn stored text units into a queryable graph with provenance.
 
 LLM decision: everything must run at zero cost. Chat defaults to
-`qwen3.5:cloud` through Ollama (free tier; verify its usage limits), with a
-small local model as fallback. Embeddings use local `nomic-embed-text`. The
+`gpt-oss:120b-cloud` through Ollama's free tier (verified 2026-10-08; most
+other cloud models return HTTP 402 without credits), with a small local model
+as fallback. Embeddings use local `nomic-embed-text`. The
 client speaks the OpenAI-compatible API, so switching provider is
 configuration only (`AETHER_LLM_BASE_URL`, `AETHER_LLM_MODEL`,
 `AETHER_LLM_API_KEY`).
