@@ -137,3 +137,15 @@ Merging already-stored entities and a review queue are Phase 4 work. The
 
 Exit: upload 3–5 small documents, extract them, query a neighborhood, and get
 an answer with real citations.
+
+Verified 2026-10-08 against Uvicorn on 127.0.0.1:8000 with `gpt-oss:120b-cloud`
+and `all-minilm`: four related documents extracted to `complete`; shared
+entities (Paris, Radium, Irène Joliot-Curie) resolved to one node each with two
+citations; three factual questions returned correct answers citing one text
+unit each; an off-topic question returned no answer and no citations;
+re-queuing a finished document added nothing.
+
+Known limits: extraction recall varies between runs (one run omitted Marie
+and Pierre Curie from a passage naming them); a second "gleaning" pass would
+help. Embeddings cannot tell name variants ("Marie Skłodowska-Curie") from
+different people ("Pierre Curie"); both stay separate entities.
