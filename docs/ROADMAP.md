@@ -45,9 +45,10 @@ Exit: basic operations work against real Neo4j and preserve provenance.
 
 ## 3. LanceDB skeleton
 
-- [ ] Introduce the embedding-store module and local configuration.
-- [ ] Test vector upsert/read using fixed test vectors and source IDs.
-- [ ] Validate model identity/dimensions and define retry/rebuild behavior.
+- [x] Introduce the embedding-store module. The caller passes the index path;
+  application configuration arrives with the FastAPI skeleton.
+- [x] Test vector upsert/read using fixed test vectors and source IDs.
+- [x] Validate model identity/dimensions and define retry/rebuild behavior.
 
 Exit: an index round trip works without requiring an LLM or extraction pipeline.
 

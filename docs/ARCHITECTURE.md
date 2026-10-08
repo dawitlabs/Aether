@@ -13,7 +13,8 @@ models, model tests, and the [local Neo4j runtime](LOCAL_DATABASE.md). The runti
 has passed authenticated connectivity and a database-restart durability check.
 
 Implemented storage: create/read for all four models; text-unit update and
-guarded delete. Not implemented: entity/relationship/claim updates and deletes, LanceDB integration, FastAPI, ingestion,
+guarded delete. LanceDB embedding index (`storage/vectors.py`). Not implemented:
+entity/relationship/claim updates and deletes, FastAPI, ingestion,
 extraction, retrieval, or contribution review workflows. Model validation does
 not prove that referenced records exist or authorize a claim's verification.
 
@@ -33,7 +34,7 @@ One Python application
                 records + evidence links
 
 Application -> local files (original documents)
-Application -> LanceDB (derived embedding index; later foundation step)
+Application -> LanceDB (derived embedding index; .local/lancedb)
 ```
 
 | Concern | Choice |
@@ -42,7 +43,7 @@ Application -> LanceDB (derived embedding index; later foundation step)
 | Domain validation | Pydantic v2 |
 | Graph storage | Local Neo4j Community; official Python driver |
 | Original documents | Local filesystem initially |
-| Embedding index | LanceDB, introduced after graph persistence |
+| Embedding index | LanceDB 0.40.0, one table per model and dimension count |
 | API | FastAPI, introduced after basic persistence |
 | LLM calls | Deferred until extraction; retain the planned provider abstraction |
 
@@ -86,6 +87,12 @@ between database records and models. Validate models on read as well as write.
 Keep graph records authoritative for structured knowledge. Treat vectors as a
 rebuildable index keyed by source ID and embedding model/version. A failed index
 write must remain retryable; do not report indexing complete until it succeeds.
+
+Vector index rules: writes are upserts keyed by source ID, so retries are
+safe. Vectors must match the table's dimension count and be finite. To rebuild,
+delete the index directory and re-upsert from the embeddings stored in Neo4j.
+The dev shell sets `LD_LIBRARY_PATH` to Nix's C++ runtime because the prebuilt
+numpy, pyarrow, and lancedb wheels need it.
 
 ## Local operation
 
