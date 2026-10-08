@@ -6,6 +6,7 @@ import pytest
 from dotenv import dotenv_values
 from neo4j import GraphDatabase
 
+from aether.storage.knowledge import Neo4jKnowledgeStore
 from aether.storage.schema import ensure_schema
 from aether.storage.text_units import Neo4jTextUnitStore
 
@@ -43,5 +44,19 @@ def document_ids(database):
     driver.execute_query(
         "MATCH (t:TextUnit) WHERE t.source_document_id IN $ids DELETE t",
         parameters_={"ids": [str(value) for value in ids]},
+        database_=name,
+    )
+
+
+@pytest.fixture
+def knowledge(database, document_ids):
+    """Depends on document_ids so these records are removed before text units."""
+    driver, name = database
+    created = []
+    yield Neo4jKnowledgeStore(driver, name), created
+    driver.execute_query(
+        "MATCH (n) WHERE (n:Entity OR n:Relationship OR n:Claim) AND n.id IN $ids "
+        "DETACH DELETE n",
+        parameters_={"ids": [str(value) for value in created]},
         database_=name,
     )

@@ -1,4 +1,4 @@
-"""Version 1: text-unit identity and document lookup schema."""
+"""Version 1: record identity and document lookup schema."""
 
 from neo4j import Driver
 
@@ -9,6 +9,12 @@ V1_STATEMENTS = (
     "FOR (t:TextUnit) REQUIRE t.id IS UNIQUE",
     "CREATE INDEX aether_v1_text_unit_document IF NOT EXISTS "
     "FOR (t:TextUnit) ON (t.source_document_id)",
+    "CREATE CONSTRAINT aether_v1_entity_id IF NOT EXISTS "
+    "FOR (e:Entity) REQUIRE e.id IS UNIQUE",
+    "CREATE CONSTRAINT aether_v1_relationship_id IF NOT EXISTS "
+    "FOR (r:Relationship) REQUIRE r.id IS UNIQUE",
+    "CREATE CONSTRAINT aether_v1_claim_id IF NOT EXISTS "
+    "FOR (c:Claim) REQUIRE c.id IS UNIQUE",
 )
 
 
