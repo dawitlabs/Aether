@@ -45,7 +45,7 @@ Application -> LanceDB (derived embedding index; .local/lancedb)
 | Original documents | Local filesystem initially |
 | Embedding index | LanceDB 0.40.0, one table per model and dimension count |
 | API | FastAPI 0.143.0 on Uvicorn 0.54.0 (`src/aether/api/app.py`) |
-| LLM calls | Deferred until extraction; retain the planned provider abstraction |
+| LLM calls | Stdlib client for OpenAI-compatible endpoints (`extraction/llm.py`); default Ollama |
 
 Use modules inside one application. A separate gateway, queue service, worker
 fleet, and orchestration platform are outside foundation scope.
