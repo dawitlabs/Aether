@@ -17,14 +17,13 @@ from neo4j import Driver, GraphDatabase
 from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import BaseModel, ConfigDict, Field
 
-from aether.core.models import Document, Entity, Relationship, TextUnit
+from aether.api.graph import router as graph_router
+from aether.core.models import Document, TextUnit
 from aether.extraction.jobs import extract_document
 from aether.extraction.llm import LLMClient, LLMError
 from aether.extraction.pipeline import Extractor
 from aether.ingestion import UploadError, ingest
-from aether.query import Answer, answer_question
 from aether.storage.documents import Neo4jDocumentStore
-from aether.storage.graph import Neo4jGraphReader
 from aether.storage.knowledge import Neo4jKnowledgeStore
 from aether.storage.schema import ensure_schema
 from aether.storage.text_units import Neo4jTextUnitStore
@@ -40,22 +39,6 @@ class ExtractionStatus(BaseModel):
     total: int
 
 
-class NeighborhoodOut(BaseModel):
-    entity: Entity
-    neighbors: list[Entity]
-    relationships: list[Relationship]
-    text_units: list[TextUnit]
-
-
-class Question(BaseModel):
-    question: str = Field(min_length=1, max_length=1000)
-
-
-def public(entity: Entity) -> Entity:
-    """Embeddings are internal and large; never return them."""
-    return entity.model_copy(update={"embedding": None})
-
-
 class Settings(BaseModel):
     model_config = ConfigDict(hide_input_in_errors=True)
 
@@ -68,6 +51,7 @@ class Settings(BaseModel):
     llm_base_url: str = "http://127.0.0.1:11434/v1"
     llm_model: str = "gpt-oss:120b-cloud"
     llm_api_key: str | None = Field(default=None, repr=False)
+    llm_cache_dir: Path | None = Path(".local/llm-cache")
     embed_base_url: str = "http://127.0.0.1:11434/v1"
     embed_model: str = "all-minilm"
     embed_api_key: str | None = Field(default=None, repr=False)
@@ -100,7 +84,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.driver = driver
         app.state.schema_ready = apply_schema(driver)
         app.state.extractor = Extractor(
-            LLMClient(config.llm_base_url, config.llm_model, api_key=config.llm_api_key),
+            LLMClient(
+                config.llm_base_url, config.llm_model,
+                api_key=config.llm_api_key, cache_dir=config.llm_cache_dir,
+            ),
             LLMClient(config.embed_base_url, config.embed_model, api_key=config.embed_api_key),
             Neo4jKnowledgeStore(driver, config.neo4j_database),
             config.index_dir,
@@ -124,6 +111,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return True
 
     app = FastAPI(title="Aether", version="0.1.0", lifespan=lifespan)
+    app.state.config = config
+    app.include_router(graph_router)
 
     @app.exception_handler(DriverError)
     @app.exception_handler(Neo4jError)
@@ -253,41 +242,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def get_extraction(request: Request, document_id: UUID) -> ExtractionStatus:
         require_document(request, document_id)
         return extraction_status(request, document_id)
-
-    @app.get("/entities", responses={503: UNAVAILABLE})
-    def search_entities(
-        request: Request,
-        name: Annotated[str, Query(min_length=1, max_length=200)],
-        limit: Annotated[int, Query(ge=1, le=100)] = 20,
-    ) -> list[Entity]:
-        graph = Neo4jGraphReader(request.app.state.driver, config.neo4j_database)
-        return [public(e) for e in graph.search_entities(name, limit=limit)]
-
-    @app.get("/entities/{entity_id}/neighborhood", responses={404: {}, 503: UNAVAILABLE})
-    def get_neighborhood(request: Request, entity_id: UUID) -> NeighborhoodOut:
-        """The entity, its relationships and their other ends, and every cited text unit."""
-        graph = Neo4jGraphReader(request.app.state.driver, config.neo4j_database)
-        hood = graph.neighborhood(entity_id)
-        if hood is None:
-            raise HTTPException(404, "Entity not found")
-        return NeighborhoodOut(
-            entity=public(hood.entity),
-            neighbors=[public(e) for e in hood.neighbors],
-            relationships=hood.relationships,
-            text_units=hood.text_units,
-        )
-
-    @app.post("/query", responses={502: {"description": "Model provider unavailable"}})
-    def query(request: Request, body: Question) -> Answer:
-        """Answer from the nearest entities' neighborhoods; citations are text-unit IDs."""
-        extractor = request.app.state.extractor
-        return answer_question(
-            body.question,
-            chat=extractor.chat,
-            embedder=extractor.embedder,
-            graph=Neo4jGraphReader(request.app.state.driver, config.neo4j_database),
-            index_path=config.index_dir,
-        )
 
     return app
 

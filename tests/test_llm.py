@@ -92,3 +92,31 @@ def test_embed_orders_by_index_and_checks_count(respond):
     respond.append({"data": [{"index": 0, "embedding": [1, 0]}]})
     with pytest.raises(LLMError, match="Expected 2"):
         client.embed(["a", "b"])
+
+
+def test_cache_answers_repeats_without_provider_calls(respond, tmp_path):
+    respond.append(chat_reply('{"n": 1}'))
+    client = LLMClient("http://host", "m", cache_dir=tmp_path)
+    assert client.chat_json("s", "u") == {"n": 1}
+    assert LLMClient("http://host", "m", cache_dir=tmp_path).chat_json("s", "u") == {"n": 1}
+    assert len(respond.requests) == 1
+
+    respond.append(chat_reply('{"n": 2}'))
+    assert LLMClient("http://host", "other", cache_dir=tmp_path).chat_json("s", "u") == {"n": 2}
+
+
+def test_corrupt_cache_entry_is_refetched(respond, tmp_path):
+    client = LLMClient("http://host", "m", cache_dir=tmp_path)
+    respond.append(chat_reply('{"n": 1}'))
+    client.chat_json("s", "u")
+    next(tmp_path.glob("*.json")).write_text("{trunc")
+    respond.append(chat_reply('{"n": 2}'))
+    assert client.chat_json("s", "u") == {"n": 2}
+    assert len(respond.requests) == 2
+
+
+def test_failed_calls_are_not_cached(respond, tmp_path):
+    respond.append(chat_reply("not json"))
+    with pytest.raises(LLMError):
+        LLMClient("http://host", "m", cache_dir=tmp_path).chat_json("s", "u")
+    assert list(tmp_path.iterdir()) == []

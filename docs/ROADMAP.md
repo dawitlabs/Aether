@@ -160,8 +160,8 @@ extensions). Single-level communities only until the graph needs hierarchy.
 
 ## 1. LLM response cache
 
-- [ ] Cache `chat_json` results on disk, keyed by model, prompt, and input.
-- [ ] Cache hits make no provider call; corrupt entries are ignored.
+- [x] Cache `chat_json` results on disk, keyed by model, prompt, and input.
+- [x] Cache hits make no provider call; corrupt entries are ignored.
 
 ## 2. Communities
 
