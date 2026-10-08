@@ -75,3 +75,62 @@ after the restart and matched the file's offsets.
 Exit: enter the development environment, start Neo4j and the API, upload a
 document, and retrieve its persisted text units. PDF parsing, advanced chunking,
 LLM extraction, and public deployment are outside this foundation milestone.
+
+# Phase 1 — Extraction MVP
+
+Goal: turn stored text units into a queryable graph with provenance.
+
+LLM decision: everything must run at zero cost. Chat defaults to
+`qwen3.5:cloud` through Ollama (free tier; verify its usage limits), with a
+small local model as fallback. Embeddings use local `nomic-embed-text`. The
+client speaks the OpenAI-compatible API, so switching provider is
+configuration only (`AETHER_LLM_BASE_URL`, `AETHER_LLM_MODEL`,
+`AETHER_LLM_API_KEY`).
+
+Deviations from the supplied roadmap: no LiteLLM (every free option is
+OpenAI-compatible), no Redis or worker queue (per-unit extraction markers make
+re-runs idempotent), chunking reuses `split_text`, and claim extraction stays
+in Phase 3.
+
+## 1. LLM client
+
+- [ ] Chat requests with JSON output, timeout, and backoff on 429/5xx.
+- [ ] Embedding requests through the same client.
+- [ ] Unit tests use a fake; one live call against Ollama returns valid JSON.
+
+## 2. Versioned prompt and parser
+
+- [ ] Prompt stored in the repo with a version recorded in provenance.
+- [ ] Parse candidate entities and relationships.
+- [ ] Reject excerpts absent from the text unit and relationships naming
+  unextracted entities.
+- [ ] Tests cover good and malformed canned output.
+
+## 3. Entity resolution
+
+- [ ] Match on normalized name plus type, then embedding similarity.
+- [ ] Matches append provenance to the existing entity.
+- [ ] The same entity extracted from two units yields one entity, two citations.
+
+Merging already-stored entities and a review queue are Phase 4 work.
+
+## 4. Graph write
+
+- [ ] One transaction per text unit: entities, relationships, and an
+  extraction marker (prompt version + model).
+- [ ] Re-runs skip finished units; failed writes leave nothing partial.
+
+## 5. Extraction job
+
+- [ ] `POST /documents/{id}/extraction` returns 202; `GET` reports progress.
+- [ ] Interrupting and re-running completes without duplicates.
+
+## 6. Local query
+
+- [ ] `GET /entities?name=` and `GET /entities/{id}/neighborhood` (one hop plus
+  citing text units).
+- [ ] `POST /query`: embed question, nearest entities, neighborhoods, LLM answer
+  citing text-unit IDs.
+
+Exit: upload 3–5 small documents, extract them, query a neighborhood, and get
+an answer with real citations.
