@@ -66,7 +66,11 @@ Exit: an index round trip works without requiring an LLM or extraction pipeline.
 - [x] Store originals and create traceable text units with hashes and token counts.
 - [x] Define consistent token counting and retry/idempotency behavior.
 - [x] Expose document lookup and text-unit listing through the API.
-- [ ] Verify upload, restart, and retrieval through the running application.
+- [x] Verify upload, restart, and retrieval through the running application.
+
+Verified 2026-10-08 against Uvicorn on 127.0.0.1:8000: upload returned 201, re-upload
+200; `/ready` returned 503 while Neo4j was stopped; text units were identical
+after the restart and matched the file's offsets.
 
 Exit: enter the development environment, start Neo4j and the API, upload a
 document, and retrieve its persisted text units. PDF parsing, advanced chunking,
