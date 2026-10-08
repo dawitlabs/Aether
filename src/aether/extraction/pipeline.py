@@ -30,6 +30,10 @@ def unit_vector(vector: list[float]) -> list[float]:
     return [x / norm for x in vector]
 
 
+def open_index(path: Path, embed_model: str, dimensions: int) -> LanceVectorIndex:
+    return LanceVectorIndex(path, model=embed_model.replace(":", "-").lower(), dimensions=dimensions)
+
+
 def embedding_text(entity: EntityCandidate) -> str:
     return f"{entity.name} ({entity.type}): {entity.description}"
 
@@ -50,8 +54,7 @@ class Extractor:
     def _vectors(self, texts: list[str]) -> list[list[float]]:
         vectors = [unit_vector(v) for v in self.embedder.embed(texts)] if texts else []
         if vectors and self._index is None:
-            model = self.embedder.model.replace(":", "-").lower()
-            self._index = LanceVectorIndex(self.index_path, model=model, dimensions=len(vectors[0]))
+            self._index = open_index(self.index_path, self.embedder.model, len(vectors[0]))
         return vectors
 
     def _match(self, candidate: EntityCandidate, vector: list[float]) -> UUID | None:

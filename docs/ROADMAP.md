@@ -130,9 +130,9 @@ real data; integration tests use a fake embedder.
 
 ## 6. Local query
 
-- [ ] `GET /entities?name=` and `GET /entities/{id}/neighborhood` (one hop plus
+- [x] `GET /entities?name=` and `GET /entities/{id}/neighborhood` (one hop plus
   citing text units).
-- [ ] `POST /query`: embed question, nearest entities, neighborhoods, LLM answer
+- [x] `POST /query`: embed question, nearest entities, neighborhoods, LLM answer
   citing text-unit IDs.
 
 Exit: upload 3–5 small documents, extract them, query a neighborhood, and get

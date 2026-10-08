@@ -17,12 +17,14 @@ from neo4j import Driver, GraphDatabase
 from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import BaseModel, ConfigDict, Field
 
-from aether.core.models import Document, TextUnit
+from aether.core.models import Document, Entity, Relationship, TextUnit
 from aether.extraction.jobs import extract_document
-from aether.extraction.llm import LLMClient
+from aether.extraction.llm import LLMClient, LLMError
 from aether.extraction.pipeline import Extractor
 from aether.ingestion import UploadError, ingest
+from aether.query import Answer, answer_question
 from aether.storage.documents import Neo4jDocumentStore
+from aether.storage.graph import Neo4jGraphReader
 from aether.storage.knowledge import Neo4jKnowledgeStore
 from aether.storage.schema import ensure_schema
 from aether.storage.text_units import Neo4jTextUnitStore
@@ -36,6 +38,22 @@ class ExtractionStatus(BaseModel):
     status: Literal["not_started", "running", "failed", "complete"]
     extracted: int
     total: int
+
+
+class NeighborhoodOut(BaseModel):
+    entity: Entity
+    neighbors: list[Entity]
+    relationships: list[Relationship]
+    text_units: list[TextUnit]
+
+
+class Question(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+
+
+def public(entity: Entity) -> Entity:
+    """Embeddings are internal and large; never return them."""
+    return entity.model_copy(update={"embedding": None})
 
 
 class Settings(BaseModel):
@@ -112,6 +130,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def database_unavailable(request: Request, error: Exception) -> JSONResponse:
         log.warning("neo4j.request_failed error=%s", type(error).__name__)
         return JSONResponse({"detail": "Database unavailable"}, status_code=503)
+
+    @app.exception_handler(LLMError)
+    async def provider_unavailable(request: Request, error: LLMError) -> JSONResponse:
+        log.warning("llm.request_failed error=%s", error)
+        return JSONResponse({"detail": "Model provider unavailable"}, status_code=502)
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -230,6 +253,41 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def get_extraction(request: Request, document_id: UUID) -> ExtractionStatus:
         require_document(request, document_id)
         return extraction_status(request, document_id)
+
+    @app.get("/entities", responses={503: UNAVAILABLE})
+    def search_entities(
+        request: Request,
+        name: Annotated[str, Query(min_length=1, max_length=200)],
+        limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    ) -> list[Entity]:
+        graph = Neo4jGraphReader(request.app.state.driver, config.neo4j_database)
+        return [public(e) for e in graph.search_entities(name, limit=limit)]
+
+    @app.get("/entities/{entity_id}/neighborhood", responses={404: {}, 503: UNAVAILABLE})
+    def get_neighborhood(request: Request, entity_id: UUID) -> NeighborhoodOut:
+        """The entity, its relationships and their other ends, and every cited text unit."""
+        graph = Neo4jGraphReader(request.app.state.driver, config.neo4j_database)
+        hood = graph.neighborhood(entity_id)
+        if hood is None:
+            raise HTTPException(404, "Entity not found")
+        return NeighborhoodOut(
+            entity=public(hood.entity),
+            neighbors=[public(e) for e in hood.neighbors],
+            relationships=hood.relationships,
+            text_units=hood.text_units,
+        )
+
+    @app.post("/query", responses={502: {"description": "Model provider unavailable"}})
+    def query(request: Request, body: Question) -> Answer:
+        """Answer from the nearest entities' neighborhoods; citations are text-unit IDs."""
+        extractor = request.app.state.extractor
+        return answer_question(
+            body.question,
+            chat=extractor.chat,
+            embedder=extractor.embedder,
+            graph=Neo4jGraphReader(request.app.state.driver, config.neo4j_database),
+            index_path=config.index_dir,
+        )
 
     return app
 

@@ -135,6 +135,16 @@ Extraction rules (`src/aether/extraction/`):
   the job; a malformed response skips one unit. Shutdown abandons the running
   unit, which a re-run redoes.
 
+Query rules (`src/aether/storage/graph.py`, `src/aether/query.py`):
+
+- `GET /entities?name=` matches name keys by substring; `GET
+  /entities/{id}/neighborhood` returns one hop plus every cited text unit.
+  Responses never include embeddings.
+- `POST /query` embeds the question, takes the 3 nearest entities, and gives
+  the model at most 8 of their cited text units. Returned citations not in
+  that set are dropped. With no matching entities the model is not called.
+- Provider failures return 502 without details.
+
 ## Local operation
 
 Neo4j runs separately from the Python application. Bind the development database
