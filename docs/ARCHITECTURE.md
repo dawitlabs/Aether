@@ -12,7 +12,8 @@ Implemented: Nix development shell, direnv setup, Python package, Pydantic domai
 models, model tests, and the [local Neo4j runtime](LOCAL_DATABASE.md). The runtime
 has passed authenticated connectivity and a database-restart durability check.
 
-Not implemented: Aether model persistence, LanceDB integration, FastAPI, ingestion,
+Implemented storage: create/read for all four models. Not implemented: updates,
+deletes, LanceDB integration, FastAPI, ingestion,
 extraction, retrieval, or contribution review workflows. Model validation does
 not prove that referenced records exist or authorize a claim's verification.
 
@@ -67,8 +68,11 @@ fleet, and orchestration platform are outside foundation scope.
 - Updates must preserve evidence integrity. Reject deletion of referenced text
   units; use explicit deprecation/supersession for knowledge lifecycle changes.
 - A model's `verified` value does not authorize a write. Verified-graph changes
-  must eventually pass the documented contribution policy. The first storage
-  milestone handles text units only.
+  must eventually pass the documented contribution policy. Until then, the
+  store rejects claims marked verified.
+- Relationships are stored as `Relationship` nodes with `FROM`/`TO` edges to
+  entities, so each can cite its own text units. All citations use `CITES`
+  edges ordered by `position`; claim citations carry `supports`.
 
 The name/hash indexing corrections above are implementation decisions in this
 revision, rather than claims that the supplied docs already specify them.
