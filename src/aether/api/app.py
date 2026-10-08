@@ -3,9 +3,10 @@
 import logging
 import os
 from collections.abc import AsyncIterator
+from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from dotenv import dotenv_values
@@ -17,14 +18,24 @@ from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import BaseModel, ConfigDict, Field
 
 from aether.core.models import Document, TextUnit
+from aether.extraction.jobs import extract_document
+from aether.extraction.llm import LLMClient
+from aether.extraction.pipeline import Extractor
 from aether.ingestion import UploadError, ingest
 from aether.storage.documents import Neo4jDocumentStore
+from aether.storage.knowledge import Neo4jKnowledgeStore
 from aether.storage.schema import ensure_schema
 from aether.storage.text_units import Neo4jTextUnitStore
 
 log = logging.getLogger("aether.api")
 MAX_UPLOAD_BYTES = 1_048_576
 UNAVAILABLE = {"description": "Database unavailable"}
+
+
+class ExtractionStatus(BaseModel):
+    status: Literal["not_started", "running", "failed", "complete"]
+    extracted: int
+    total: int
 
 
 class Settings(BaseModel):
@@ -35,6 +46,13 @@ class Settings(BaseModel):
     neo4j_password: str = Field(min_length=1, repr=False)
     neo4j_database: str = Field(min_length=1)
     documents_dir: Path = Path(".local/documents")
+    index_dir: Path = Path(".local/lancedb")
+    llm_base_url: str = "http://127.0.0.1:11434/v1"
+    llm_model: str = "gpt-oss:120b-cloud"
+    llm_api_key: str | None = Field(default=None, repr=False)
+    embed_base_url: str = "http://127.0.0.1:11434/v1"
+    embed_model: str = "nomic-embed-text"
+    embed_api_key: str | None = Field(default=None, repr=False)
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -63,9 +81,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         app.state.driver = driver
         app.state.schema_ready = apply_schema(driver)
+        app.state.extractor = Extractor(
+            LLMClient(config.llm_base_url, config.llm_model, api_key=config.llm_api_key),
+            LLMClient(config.embed_base_url, config.embed_model, api_key=config.embed_api_key),
+            Neo4jKnowledgeStore(driver, config.neo4j_database),
+            config.index_dir,
+        )
+        # One worker: units are extracted strictly one at a time (see pipeline.py).
+        app.state.worker = ThreadPoolExecutor(max_workers=1)
+        app.state.jobs = {}
         try:
             yield
         finally:
+            # An interrupted unit is never marked done, so a re-run redoes it.
+            app.state.worker.shutdown(wait=False, cancel_futures=True)
             driver.close()
 
     def apply_schema(driver: Driver) -> bool:
@@ -160,4 +189,52 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         units = Neo4jTextUnitStore(driver, config.neo4j_database)
         return units.list_by_document(document_id, limit=limit, offset=offset)
 
+    def extraction_status(request: Request, document_id: UUID) -> ExtractionStatus:
+        state = request.app.state
+        store = Neo4jKnowledgeStore(state.driver, config.neo4j_database)
+        extracted, total = store.extraction_progress(document_id, state.extractor.marker)
+        job: Future[None] | None = state.jobs.get(document_id)
+        if job is not None and not job.done():
+            status = "running"
+        elif extracted == total:
+            status = "complete"
+        elif job is not None and not job.cancelled() and job.exception() is not None:
+            status = "failed"
+        else:
+            status = "not_started"
+        return ExtractionStatus(status=status, extracted=extracted, total=total)
+
+    def require_document(request: Request, document_id: UUID) -> None:
+        store = Neo4jDocumentStore(request.app.state.driver, config.neo4j_database)
+        if store.get(document_id) is None:
+            raise HTTPException(404, "Document not found")
+
+    @app.post(
+        "/documents/{document_id}/extraction",
+        status_code=202,
+        responses={404: {}, 503: UNAVAILABLE},
+    )
+    def start_extraction(request: Request, document_id: UUID) -> ExtractionStatus:
+        """Queue LLM extraction. Idempotent: finished units are skipped."""
+        require_document(request, document_id)
+        state = request.app.state
+        job = state.jobs.get(document_id)
+        if job is None or job.done():
+            units = Neo4jTextUnitStore(state.driver, config.neo4j_database)
+            job = state.worker.submit(extract_document, state.extractor, units, document_id)
+            job.add_done_callback(log_failure)
+            state.jobs[document_id] = job
+        return extraction_status(request, document_id)
+
+    @app.get("/documents/{document_id}/extraction", responses={404: {}, 503: UNAVAILABLE})
+    def get_extraction(request: Request, document_id: UUID) -> ExtractionStatus:
+        require_document(request, document_id)
+        return extraction_status(request, document_id)
+
     return app
+
+
+def log_failure(job: Future[None]) -> None:
+    error = None if job.cancelled() else job.exception()
+    if error is not None:
+        log.warning("extraction.job_failed error=%s", type(error).__name__)

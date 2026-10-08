@@ -129,6 +129,11 @@ Extraction rules (`src/aether/extraction/`):
   unique constraint makes re-runs skip finished units.
 - Units are processed sequentially; concurrent runs may duplicate entities.
 - Entity vectors are upserted to LanceDB after commit, unit-normalized.
+- `POST /documents/{id}/extraction` queues the document on a single worker
+  thread and returns 202; `GET` reports `not_started`, `running`, `failed`, or
+  `complete` with extracted/total counts from the markers. Provider errors stop
+  the job; a malformed response skips one unit. Shutdown abandons the running
+  unit, which a re-run redoes.
 
 ## Local operation
 

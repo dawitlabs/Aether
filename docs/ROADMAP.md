@@ -85,8 +85,8 @@ LLM decision: everything must run at zero cost. Chat defaults to
 other cloud models return HTTP 402 without credits), with a small local model
 as fallback. Embeddings use local `nomic-embed-text`. The
 client speaks the OpenAI-compatible API, so switching provider is
-configuration only (`AETHER_LLM_BASE_URL`, `AETHER_LLM_MODEL`,
-`AETHER_LLM_API_KEY`).
+configuration only (`LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`, and
+`EMBED_*` equivalents).
 
 Deviations from the supplied roadmap: no LiteLLM (every free option is
 OpenAI-compatible), no Redis or worker queue (per-unit extraction markers make
@@ -125,8 +125,8 @@ real data; integration tests use a fake embedder.
 
 ## 5. Extraction job
 
-- [ ] `POST /documents/{id}/extraction` returns 202; `GET` reports progress.
-- [ ] Interrupting and re-running completes without duplicates.
+- [x] `POST /documents/{id}/extraction` returns 202; `GET` reports progress.
+- [x] Interrupting and re-running completes without duplicates.
 
 ## 6. Local query
 

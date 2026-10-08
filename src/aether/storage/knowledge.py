@@ -187,6 +187,19 @@ class Neo4jKnowledgeStore:
         )
         return records[0]["done"]
 
+    def extraction_progress(self, document_id: UUID, marker: str) -> tuple[int, int]:
+        """(extracted, total) text units of a document for this marker."""
+        records, _, _ = self._driver.execute_query(
+            "MATCH (t:TextUnit {source_document_id: $doc}) "
+            "RETURN count(t) AS total, "
+            "count(CASE WHEN EXISTS { (t)<-[:OF]-(:Extraction {marker: $marker}) } "
+            "THEN 1 END) AS done",
+            parameters_={"doc": str(document_id), "marker": marker},
+            database_=self._database,
+            routing_="r",
+        )
+        return records[0]["done"], records[0]["total"]
+
     def write_extraction(
         self,
         text_unit_id: UUID,

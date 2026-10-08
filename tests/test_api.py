@@ -48,7 +48,8 @@ def test_shutdown_closes_the_driver():
 def test_settings_read_environment(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     for key, value in UNREACHABLE.model_dump(mode="json").items():
-        monkeypatch.setenv(key.upper(), value)
+        if value is not None:
+            monkeypatch.setenv(key.upper(), value)
     assert Settings.from_env() == UNREACHABLE
 
 
