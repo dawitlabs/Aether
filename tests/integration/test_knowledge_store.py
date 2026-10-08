@@ -13,6 +13,7 @@ from aether.core.models import (
     TextUnit,
 )
 from aether.storage.knowledge import DuplicateRecordError, MissingReferenceError
+from aether.storage.text_units import ReferencedTextUnitError
 
 
 @pytest.fixture
@@ -197,3 +198,10 @@ def test_claim_cannot_be_stored_as_verified(knowledge, units, overrides):
     with pytest.raises(ValueError, match="without review"):
         knowledge[0].create_claim(claim)
     assert knowledge[0].get_claim(claim.id) is None
+
+
+def test_cited_text_unit_cannot_be_deleted(knowledge, units, store):
+    stored_entities(knowledge, units, count=1)
+    with pytest.raises(ReferencedTextUnitError, match="cited 1 time"):
+        store.delete(units[0].id)
+    assert store.get(units[0].id) == units[0]

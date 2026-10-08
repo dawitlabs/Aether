@@ -6,7 +6,11 @@ from pydantic import ValidationError
 
 from aether.core.models import TextUnit
 from aether.storage.schema import ensure_schema
-from aether.storage.text_units import DuplicateTextUnitError
+from aether.storage.text_units import (
+    DuplicateTextUnitError,
+    ImmutableTextUnitError,
+    TextUnitNotFoundError,
+)
 
 
 def make_unit(document_id, **overrides):
@@ -94,3 +98,47 @@ def test_corrupted_record_is_rejected_on_read(store, database, document_ids):
     )
     with pytest.raises(ValidationError, match="content_hash must match text"):
         store.get(unit.id)
+
+
+def test_update_changes_mutable_fields(store, document_ids):
+    unit = store.create(make_unit(document_ids[0]))
+    changed = unit.model_copy(
+        update={"token_count": 99, "metadata": {"page": 3}, "embedding": [1.0, 2.0]}
+    )
+    assert store.update(changed) == changed
+    assert store.get(unit.id) == changed
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [("source_document_id", uuid4()), ("start_offset", 7), ("created_at", None)],
+)
+def test_update_rejects_identity_changes(store, document_ids, field, value):
+    unit = store.create(make_unit(document_ids[0]))
+    if field == "created_at":
+        value = unit.created_at.replace(year=2000)
+    with pytest.raises(ImmutableTextUnitError, match=field):
+        store.update(unit.model_copy(update={field: value}))
+    assert store.get(unit.id) == unit
+
+
+def test_update_rejects_new_text_even_with_matching_hash(store, document_ids):
+    unit = store.create(make_unit(document_ids[0]))
+    text = "Replacement text"
+    replacement = unit.model_copy(
+        update={"text": text, "content_hash": sha256(text.encode("utf-8")).hexdigest()}
+    )
+    with pytest.raises(ImmutableTextUnitError, match="text, content_hash"):
+        store.update(replacement)
+
+
+def test_update_missing_unit_raises(store, document_ids):
+    with pytest.raises(TextUnitNotFoundError):
+        store.update(make_unit(document_ids[0]))
+
+
+def test_delete_uncited_unit(store, document_ids):
+    unit = store.create(make_unit(document_ids[0]))
+    assert store.delete(unit.id) is True
+    assert store.get(unit.id) is None
+    assert store.delete(unit.id) is False

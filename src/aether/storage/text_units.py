@@ -1,17 +1,35 @@
-"""Neo4j create/read operations for text units; caller owns the driver."""
+"""Neo4j operations for text units; caller owns the driver."""
 
 import json
 from collections.abc import Mapping
 from uuid import UUID
 
-from neo4j import Driver
+from neo4j import Driver, ManagedTransaction
 from neo4j.exceptions import ConstraintError
 
 from aether.core.models import TextUnit
 
 
+# Changing these would silently change what existing citations point at.
+IMMUTABLE_FIELDS = (
+    "text", "content_hash", "source_document_id", "start_offset", "end_offset", "created_at"
+)
+
+
 class DuplicateTextUnitError(ValueError):
     """A text unit with the supplied ID already exists."""
+
+
+class TextUnitNotFoundError(LookupError):
+    """No text unit has the supplied ID."""
+
+
+class ImmutableTextUnitError(ValueError):
+    """An update tried to change a field that defines the text."""
+
+
+class ReferencedTextUnitError(ValueError):
+    """The text unit is cited by other records and cannot be deleted."""
 
 
 def _properties(unit: TextUnit) -> dict[str, object]:
@@ -77,3 +95,46 @@ class Neo4jTextUnitStore:
             routing_="r",
         )
         return [_model(record["data"]) for record in records]
+
+    def update(self, unit: TextUnit) -> TextUnit:
+        properties = _properties(unit)
+
+        def write(tx: ManagedTransaction) -> TextUnit:
+            record = tx.run(
+                "MATCH (t:TextUnit {id: $id}) RETURN properties(t) AS data", id=str(unit.id)
+            ).single()
+            if record is None:
+                raise TextUnitNotFoundError(f"Text unit {unit.id} does not exist")
+            current = _model(record["data"])
+            changed = [f for f in IMMUTABLE_FIELDS if getattr(current, f) != getattr(unit, f)]
+            if changed:
+                raise ImmutableTextUnitError(f"Cannot change {', '.join(changed)}")
+            updated = tx.run(
+                "MATCH (t:TextUnit {id: $id}) SET t = $properties RETURN properties(t) AS data",
+                id=str(unit.id), properties=properties,
+            ).single(strict=True)
+            return _model(updated["data"])
+
+        with self._driver.session(database=self._database) as session:
+            return session.execute_write(write)
+
+    def delete(self, unit_id: UUID) -> bool:
+        """Return False if the unit did not exist."""
+
+        def write(tx: ManagedTransaction) -> bool:
+            record = tx.run(
+                "MATCH (t:TextUnit {id: $id}) "
+                "RETURN COUNT { (t)<-[:CITES]-() } AS citations",
+                id=str(unit_id),
+            ).single()
+            if record is None:
+                return False
+            if record["citations"]:
+                raise ReferencedTextUnitError(
+                    f"Text unit {unit_id} is cited {record['citations']} time(s)"
+                )
+            tx.run("MATCH (t:TextUnit {id: $id}) DELETE t", id=str(unit_id)).consume()
+            return True
+
+        with self._driver.session(database=self._database) as session:
+            return session.execute_write(write)
