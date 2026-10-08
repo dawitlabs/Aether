@@ -149,3 +149,41 @@ Known limits: extraction recall varies between runs (one run omitted Marie
 and Pierre Curie from a passage naming them); a second "gleaning" pass would
 help. Embeddings cannot tell name variants ("Marie Skłodowska-Curie") from
 different people ("Pierre Curie"); both stay separate entities.
+
+# Phase 2 — GraphRAG features
+
+Goal: community summaries and thematic (global) questions with grounded
+citations, measured by a repeatable evaluation.
+
+Dependency: `networkx` 3.7 for its pure-Python Leiden implementation (no C
+extensions). Single-level communities only until the graph needs hierarchy.
+
+## 1. LLM response cache
+
+- [ ] Cache `chat_json` results on disk, keyed by model, prompt, and input.
+- [ ] Cache hits make no provider call; corrupt entries are ignored.
+
+## 2. Communities
+
+- [ ] Leiden over active entities, relationship-weighted, fixed seed.
+- [ ] A rebuild replaces all communities in one transaction.
+- [ ] `POST /communities/rebuild` runs on the extraction worker.
+
+## 3. Community reports
+
+- [ ] One report per community: title, summary, findings.
+- [ ] Findings cite only text units that member entities cite.
+- [ ] Report summaries are embedded for retrieval.
+
+## 4. Query modes and citations
+
+- [ ] `POST /query` accepts `mode`: `local`, `global`, or `hybrid`.
+- [ ] Citations carry text unit, document, and a quote verified verbatim.
+
+## 5. Evaluation harness
+
+- [ ] A committed corpus and golden questions (factual, thematic, unanswerable).
+- [ ] `scripts/eval.py` logs keyword recall, citation precision, and abstention.
+
+Exit: ingest the corpus, rebuild communities, answer local and thematic
+questions with citations, and log evaluation scores.
