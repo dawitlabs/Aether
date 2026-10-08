@@ -101,11 +101,11 @@ in Phase 3.
 
 ## 2. Versioned prompt and parser
 
-- [ ] Prompt stored in the repo with a version recorded in provenance.
-- [ ] Parse candidate entities and relationships.
-- [ ] Reject excerpts absent from the text unit and relationships naming
+- [x] Prompt stored in the repo with a version recorded in provenance.
+- [x] Parse candidate entities and relationships.
+- [x] Reject excerpts absent from the text unit and relationships naming
   unextracted entities.
-- [ ] Tests cover good and malformed canned output.
+- [x] Tests cover good and malformed canned output.
 
 ## 3. Entity resolution
 
