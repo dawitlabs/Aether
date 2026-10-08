@@ -14,7 +14,7 @@ has passed authenticated connectivity and a database-restart durability check.
 
 Implemented storage: create/read for all four models; text-unit update and
 guarded delete. LanceDB embedding index (`storage/vectors.py`). Not implemented:
-entity/relationship/claim updates and deletes, ingestion,
+entity/relationship/claim updates and deletes, non-text ingestion,
 extraction, retrieval, or contribution review workflows. Model validation does
 not prove that referenced records exist or authorize a claim's verification.
 
@@ -98,6 +98,23 @@ API rules: `/health` reports process liveness and never touches the database.
 `/ready` runs one authenticated query without retries and returns 503 when
 Neo4j is unreachable, without exposing error details. The driver opens at
 startup and closes at shutdown; the API starts even while Neo4j is down.
+
+Ingestion rules (`src/aether/ingestion.py`):
+
+- `POST /documents` takes a raw `text/plain; charset=utf-8` body up to 1 MiB.
+  Identical bytes map to one document (unique `content_hash`), so re-uploads
+  and retries return the original with 200 instead of creating duplicates.
+- Originals are stored content-addressed at `.local/documents/<sha256>.txt`
+  before the database write, so a failed write can simply be retried.
+- Text is split into units of at most 2,000 characters, breaking at blank
+  lines, then line breaks, then spaces. Offsets are character positions in the
+  decoded text; each unit's text is exactly `text[start_offset:end_offset]`.
+- `token_count` counts whitespace-separated words until a model tokenizer is
+  chosen. Whitespace-only spans are skipped.
+- The document and all of its text units are written in one transaction.
+- Database failures return 503 without details. The driver retries transient
+  errors for at most 3 seconds per query.
+- The API has no authentication. It must stay bound to loopback until auth exists.
 
 ## Local operation
 

@@ -59,6 +59,14 @@ uvicorn --factory aether.api.app:create_app
 It reads the `NEO4J_*` settings from `.env`. Check `/health` (process up) and
 `/ready` (database reachable); OpenAPI docs are at `/docs`.
 
+Upload a text file and list its text units:
+
+```bash
+curl -s -X POST 'http://127.0.0.1:8000/documents?filename=notes.txt' \
+  -H 'content-type: text/plain; charset=utf-8' --data-binary @notes.txt
+curl -s http://127.0.0.1:8000/documents/<id>/text-units
+```
+
 ## Making changes
 
 - Keep changes focused on one task.

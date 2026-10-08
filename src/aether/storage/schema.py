@@ -15,6 +15,10 @@ V1_STATEMENTS = (
     "FOR (r:Relationship) REQUIRE r.id IS UNIQUE",
     "CREATE CONSTRAINT aether_v1_claim_id IF NOT EXISTS "
     "FOR (c:Claim) REQUIRE c.id IS UNIQUE",
+    "CREATE CONSTRAINT aether_v1_document_id IF NOT EXISTS "
+    "FOR (d:Document) REQUIRE d.id IS UNIQUE",
+    "CREATE CONSTRAINT aether_v1_document_hash IF NOT EXISTS "
+    "FOR (d:Document) REQUIRE d.content_hash IS UNIQUE",
 )
 
 
@@ -24,5 +28,7 @@ def ensure_schema(driver: Driver, database: str) -> None:
     Run explicitly at application setup, before constructing repositories.
     This is the first schema version, not a general migration runner.
     """
-    for statement in V1_STATEMENTS:
-        driver.execute_query(statement, database_=database)
+    # Auto-commit without retries, so an unreachable database fails fast.
+    with driver.session(database=database) as session:
+        for statement in V1_STATEMENTS:
+            session.run(statement).consume()

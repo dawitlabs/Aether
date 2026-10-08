@@ -27,7 +27,7 @@ def test_ready_reports_unavailable_without_internal_details(caplog):
         response = client.get("/ready")
     assert response.status_code == 503
     assert response.json() == {"status": "unavailable"}
-    assert "neo4j.unavailable" in caplog.text
+    assert "neo4j.schema_pending" in caplog.text
     assert SECRET not in caplog.text
 
 
@@ -47,7 +47,7 @@ def test_shutdown_closes_the_driver():
 
 def test_settings_read_environment(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
-    for key, value in UNREACHABLE.model_dump().items():
+    for key, value in UNREACHABLE.model_dump(mode="json").items():
         monkeypatch.setenv(key.upper(), value)
     assert Settings.from_env() == UNREACHABLE
 

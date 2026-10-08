@@ -32,7 +32,7 @@ class ReferencedTextUnitError(ValueError):
     """The text unit is cited by other records and cannot be deleted."""
 
 
-def _properties(unit: TextUnit) -> dict[str, object]:
+def text_unit_properties(unit: TextUnit) -> dict[str, object]:
     # Revalidate even if a caller mutated a previously valid model.
     validated = TextUnit.model_validate(unit.model_dump())
     properties = validated.model_dump(mode="json", exclude={"metadata"})
@@ -59,7 +59,7 @@ class Neo4jTextUnitStore:
         self._database = database
 
     def create(self, unit: TextUnit) -> TextUnit:
-        properties = _properties(unit)
+        properties = text_unit_properties(unit)
         try:
             records, _, _ = self._driver.execute_query(
                 "CREATE (t:TextUnit) SET t = $properties RETURN properties(t) AS data",
@@ -97,7 +97,7 @@ class Neo4jTextUnitStore:
         return [_model(record["data"]) for record in records]
 
     def update(self, unit: TextUnit) -> TextUnit:
-        properties = _properties(unit)
+        properties = text_unit_properties(unit)
 
         def write(tx: ManagedTransaction) -> TextUnit:
             record = tx.run(

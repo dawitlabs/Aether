@@ -122,3 +122,15 @@ class TextUnit(BaseModel):
             raise ValueError("content_hash must match text")
 
         return self
+
+
+class Document(BaseModel):
+    """An uploaded original; identical bytes always map to one document."""
+
+    id: UUID = Field(default_factory=uuid4)
+    filename: str | None = Field(default=None, min_length=1, max_length=255)
+    media_type: Literal["text/plain"] = "text/plain"
+    size_bytes: int = Field(ge=1)
+    content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    text_unit_count: int = Field(ge=1)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

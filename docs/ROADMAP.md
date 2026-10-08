@@ -61,11 +61,11 @@ Exit: an index round trip works without requiring an LLM or extraction pipeline.
 
 ## 5. Minimal document ingestion
 
-- [ ] Define document identity and source metadata before accepting uploads.
-- [ ] Begin with UTF-8 text uploads and explicit size limits.
-- [ ] Store originals and create traceable text units with hashes and token counts.
-- [ ] Define consistent token counting and retry/idempotency behavior.
-- [ ] Expose document lookup and text-unit listing through the API.
+- [x] Define document identity and source metadata before accepting uploads.
+- [x] Begin with UTF-8 text uploads and explicit size limits.
+- [x] Store originals and create traceable text units with hashes and token counts.
+- [x] Define consistent token counting and retry/idempotency behavior.
+- [x] Expose document lookup and text-unit listing through the API.
 - [ ] Verify upload, restart, and retrieval through the running application.
 
 Exit: enter the development environment, start Neo4j and the API, upload a
