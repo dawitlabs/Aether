@@ -14,6 +14,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from aether.extraction.llm import LLMClient
+from aether.storage.knowledge import name_key as normalize
 
 log = logging.getLogger("aether.extraction")
 
@@ -86,11 +87,6 @@ class RelationshipCandidate(BaseModel):
 class Extraction(BaseModel):
     entities: list[EntityCandidate]
     relationships: list[RelationshipCandidate]
-
-
-def normalize(value: str) -> str:
-    """Comparison key: case- and whitespace-insensitive."""
-    return " ".join(value.split()).casefold()
 
 
 def extract(client: LLMClient, text: str) -> Extraction:

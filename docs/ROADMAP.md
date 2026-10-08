@@ -109,17 +109,19 @@ in Phase 3.
 
 ## 3. Entity resolution
 
-- [ ] Match on normalized name plus type, then embedding similarity.
-- [ ] Matches append provenance to the existing entity.
-- [ ] The same entity extracted from two units yields one entity, two citations.
+- [x] Match on normalized name plus type, then embedding similarity.
+- [x] Matches append provenance to the existing entity.
+- [x] The same entity extracted from two units yields one entity, two citations.
 
-Merging already-stored entities and a review queue are Phase 4 work.
+Merging already-stored entities and a review queue are Phase 4 work. The
+0.92 cosine merge threshold is uncalibrated until `nomic-embed-text` runs on
+real data; integration tests use a fake embedder.
 
 ## 4. Graph write
 
-- [ ] One transaction per text unit: entities, relationships, and an
+- [x] One transaction per text unit: entities, relationships, and an
   extraction marker (prompt version + model).
-- [ ] Re-runs skip finished units; failed writes leave nothing partial.
+- [x] Re-runs skip finished units; failed writes leave nothing partial.
 
 ## 5. Extraction job
 

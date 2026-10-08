@@ -1,9 +1,9 @@
-"""Version 1: record identity and document lookup schema."""
+"""Version 1: record identity and document lookup. Version 2: extraction."""
 
 from neo4j import Driver
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 V1_STATEMENTS = (
     "CREATE CONSTRAINT aether_v1_text_unit_id IF NOT EXISTS "
     "FOR (t:TextUnit) REQUIRE t.id IS UNIQUE",
@@ -20,15 +20,21 @@ V1_STATEMENTS = (
     "CREATE CONSTRAINT aether_v1_document_hash IF NOT EXISTS "
     "FOR (d:Document) REQUIRE d.content_hash IS UNIQUE",
 )
+V2_STATEMENTS = (
+    "CREATE CONSTRAINT aether_v2_extraction_key IF NOT EXISTS "
+    "FOR (x:Extraction) REQUIRE x.key IS UNIQUE",
+    "CREATE INDEX aether_v2_entity_name_key IF NOT EXISTS "
+    "FOR (e:Entity) ON (e.name_key, e.type)",
+)
 
 
 def ensure_schema(driver: Driver, database: str) -> None:
     """Apply additive schema statements; safe to repeat after interruption.
 
     Run explicitly at application setup, before constructing repositories.
-    This is the first schema version, not a general migration runner.
+    Versions are additive statement lists, not a general migration runner.
     """
     # Auto-commit without retries, so an unreachable database fails fast.
     with driver.session(database=database) as session:
-        for statement in V1_STATEMENTS:
+        for statement in (*V1_STATEMENTS, *V2_STATEMENTS):
             session.run(statement).consume()

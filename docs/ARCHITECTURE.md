@@ -116,6 +116,20 @@ Ingestion rules (`src/aether/ingestion.py`):
   errors for at most 3 seconds per query.
 - The API has no authentication. It must stay bound to loopback until auth exists.
 
+Extraction rules (`src/aether/extraction/`):
+
+- `extract.py` holds the versioned prompt. Model output is untrusted: items
+  whose excerpt is not in the text unit, and relationships whose ends were not
+  extracted, are dropped.
+- `pipeline.py` resolves each entity to an existing active entity of the same
+  type by exact name key, then by embedding cosine >= 0.92; otherwise it creates
+  one. A match appends a `CITES` edge to the existing entity.
+- One transaction per text unit writes new entities, citations, relationships,
+  and an `:Extraction {key: "<unit id>|<prompt version>/<model>"}` marker. Its
+  unique constraint makes re-runs skip finished units.
+- Units are processed sequentially; concurrent runs may duplicate entities.
+- Entity vectors are upserted to LanceDB after commit, unit-normalized.
+
 ## Local operation
 
 Neo4j runs separately from the Python application. Bind the development database
