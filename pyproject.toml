@@ -9,6 +9,8 @@ description = "An evidence-backed collective knowledge engine"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2,<3",
+    "neo4j==6.4.0",
+    "python-dotenv==1.2.4",
 ]
 
 [tool.setuptools.packages.find]
