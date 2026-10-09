@@ -1,13 +1,18 @@
-# Deploying Aether
+# Self-hosting Aether on a VPS
 
-One free Oracle Cloud VM runs everything: Caddy (TLS, body limit, security
-headers) in front of the API on `127.0.0.1:8000`, Neo4j and Ollama on
-localhost. Chat uses Ollama's cloud model; embeddings run on the VM. The
-address is `https://<ip-with-dashes>.sslip.io`, so no domain is needed.
+Aether runs locally without any of this (see [CONTRIBUTING.md](../CONTRIBUTING.md)).
+Deploy only when people or agents elsewhere need to reach your instance.
+
+One Ubuntu 24.04 VM (arm64 or amd64, 2 CPUs / 8 GB or more) runs everything:
+Caddy (TLS, body limit, security headers) in front of the API on
+`127.0.0.1:8000`, Neo4j and Ollama on localhost. Chat uses Ollama's cloud
+model; embeddings run on the VM. The address is
+`https://<ip-with-dashes>.sslip.io`, so no domain is needed.
 
 ## 1. Create the VM
 
-In Oracle Cloud (Always Free):
+Any provider works: open TCP 80 and 443 in its firewall and add your SSH key.
+A free option is Oracle Cloud's Always Free tier:
 
 - Compute → Instance, image **Ubuntu 24.04**, shape **VM.Standard.A1.Flex**
   with 2 OCPU and 12 GB (the Always Free ceiling since 2026-06-15).
@@ -19,7 +24,7 @@ If the region reports "out of capacity", retry later.
 
 ## 2. Copy the code and run setup
 
-The repository is private, so copy it from your machine:
+From a checkout of this repository:
 
 ```sh
 rsync -a --exclude .git --exclude .venv --exclude .local --exclude .env \
@@ -29,7 +34,9 @@ ssh ubuntu@<ip> sudo bash aether/deploy/setup.sh <ip>
 
 `setup.sh` installs Neo4j, Caddy, Ollama and the API, generates the database
 password into `/etc/aether/aether.env` (root and the `aether` group only), opens
-ports 80/443 in the VM's iptables, and starts everything.
+ports 80/443 in the VM's iptables, and starts everything. To use another
+OpenAI-compatible LLM provider, edit `LLM_*`/`EMBED_*` in that file and run
+`sudo systemctl restart aether`.
 
 ## 3. Sign Ollama in
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install or update Aether on a fresh Ubuntu 24.04 VM (arm64 or amd64).
+# Install or update a self-hosted Aether on a fresh Ubuntu 24.04 VM (arm64 or amd64).
 #
 #   sudo bash deploy/setup.sh <public-ip>
 #
