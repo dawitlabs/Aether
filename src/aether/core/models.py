@@ -31,6 +31,9 @@ class ContributorRef(BaseModel):
     contributor_id: UUID
 
 
+ClaimStatus = Literal["proposed", "under_review", "verified", "rejected", "superseded"]
+
+
 class Claim(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     statement: str = Field(min_length=1)
@@ -39,9 +42,7 @@ class Claim(BaseModel):
     object_id: UUID | None = None
     confidence: float = Field(ge=0, le=1)
     polarity: Literal["supported", "disputed", "uncertain", "mixed"] = "uncertain"
-    status: Literal[
-        "proposed", "under_review", "verified", "rejected", "superseded"
-    ] = "proposed"
+    status: ClaimStatus = "proposed"
     evidence: list[EvidenceRef] = Field(default_factory=list)
     counter_evidence: list[EvidenceRef] = Field(default_factory=list)
     supersedes_id: UUID | None = None
@@ -172,3 +173,14 @@ class Contributor(BaseModel):
         if self.type == "agent" and {"review", "admin"} & set(self.permissions):
             raise ValueError("agents may only have the propose permission")
         return self
+
+
+class Review(BaseModel):
+    """One accept, reject, or dispute decision on a claim (ADR-0002)."""
+
+    id: UUID = Field(default_factory=uuid4)
+    claim_id: UUID
+    contributor_id: UUID
+    kind: Literal["accept", "reject", "dispute"]
+    notes: str = Field(default="", max_length=2000)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

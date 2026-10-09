@@ -1,12 +1,14 @@
 """Contributor administration and self-lookup."""
 
 from typing import Annotated, Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, ValidationError
 
 from aether.api.auth import current_contributor, require
 from aether.core.models import Contributor, Permission
+from aether.storage.claims import Neo4jClaimStore
 from aether.storage.contributors import Neo4jContributorStore
 
 router = APIRouter()
@@ -16,6 +18,12 @@ class NewContributor(BaseModel):
     type: Literal["human", "agent"]
     display_name: str = Field(min_length=1, max_length=100)
     permissions: list[Permission] = Field(default_factory=lambda: ["propose"])
+
+
+class ContributorProfile(BaseModel):
+    contributor: Contributor
+    accepted_claims: int
+    rejected_claims: int
 
 
 class CreatedContributor(BaseModel):
@@ -41,3 +49,17 @@ def create_contributor(
 @router.get("/contributors/me", responses={401: {}})
 def me(contributor: Annotated[Contributor, Depends(current_contributor)]) -> Contributor:
     return contributor
+
+
+@router.get("/contributors/{contributor_id}", responses={404: {}})
+def profile(request: Request, contributor_id: UUID) -> ContributorProfile:
+    """Identity plus reputation: counts of this contributor's accepted and rejected claims."""
+    state = request.app.state
+    db = state.config.neo4j_database
+    contributor = Neo4jContributorStore(state.driver, db).get(contributor_id)
+    if contributor is None:
+        raise HTTPException(404, "Contributor not found")
+    accepted, rejected = Neo4jClaimStore(state.driver, db).reputation(contributor_id)
+    return ContributorProfile(
+        contributor=contributor, accepted_claims=accepted, rejected_claims=rejected
+    )

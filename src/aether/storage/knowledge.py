@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from aether.core.models import Claim, Entity, ProvenanceRef, Relationship
 from aether.core.text import name_key
 
-Label = Literal["TextUnit", "Entity", "Relationship", "Claim"]
+Label = Literal["TextUnit", "Entity", "Relationship", "Claim", "Contributor"]
 # (edge type, target label, target id)
 Link = tuple[str, Label, str]
 Row = dict[str, object]
@@ -112,6 +112,21 @@ def _relationship_node(relationship: Relationship) -> tuple[Row, list[Row], list
         ("TO", "Entity", str(node["target_id"])),
     ]
     return node, node.pop("provenance"), links
+
+
+def claim_node(claim: Claim) -> tuple[Row, list[Row], list[Link]]:
+    node = _dump(claim, ("contributors",))
+    refs = [*node.pop("evidence"), *node.pop("counter_evidence")]
+    edges = (
+        ("SUBJECT", "Entity", "subject_id"),
+        ("OBJECT", "Entity", "object_id"),
+        ("SUPERSEDES", "Claim", "supersedes_id"),
+        ("SUPERSEDED_BY", "Claim", "superseded_by_id"),
+    )
+    links: list[Link] = [
+        (edge, target, str(node[field])) for edge, target, field in edges if node[field]
+    ]
+    return node, refs, links
 
 
 class Neo4jKnowledgeStore:
@@ -256,21 +271,10 @@ class Neo4jKnowledgeStore:
         return _load(Relationship, found[0], ("properties",), {"provenance": found[1]})
 
     def create_claim(self, claim: Claim) -> None:
-        # ponytail: blanket block until the contribution review workflow exists.
+        # Verification happens only through Neo4jClaimStore.review (ADR-0002).
         if claim.status == "verified" or claim.verified_at or claim.verified_by:
             raise ValueError("Claims cannot be stored as verified without review")
-        node = _dump(claim, ("contributors",))
-        refs = [*node.pop("evidence"), *node.pop("counter_evidence")]
-        edges = (
-            ("SUBJECT", "Entity", "subject_id"),
-            ("OBJECT", "Entity", "object_id"),
-            ("SUPERSEDES", "Claim", "supersedes_id"),
-            ("SUPERSEDED_BY", "Claim", "superseded_by_id"),
-        )
-        links: list[Link] = [
-            (edge, target, str(node[field])) for edge, target, field in edges if node[field]
-        ]
-        self._create("Claim", node, refs, links)
+        self._create("Claim", *claim_node(claim))
 
     def get_claim(self, claim_id: UUID) -> Claim | None:
         found = self._get("Claim", claim_id)

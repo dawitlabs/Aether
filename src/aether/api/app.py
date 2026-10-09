@@ -18,6 +18,7 @@ from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import BaseModel, ConfigDict, Field
 
 from aether.api.auth import require
+from aether.api.claims import router as claims_router
 from aether.api.contributors import router as contributors_router
 from aether.api.graph import log_failure
 from aether.api.graph import router as graph_router
@@ -117,6 +118,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.config = config
     app.include_router(graph_router)
     app.include_router(contributors_router)
+    app.include_router(claims_router)
 
     @app.exception_handler(DriverError)
     @app.exception_handler(Neo4jError)
