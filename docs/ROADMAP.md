@@ -327,3 +327,11 @@ the "main themes" answer now covers the people as well as the physics (keyword
 recall varies 0.5 to 1.0 between runs on whether it says "Nobel"); summary
 recall 0.95 to 1.0, precision 1.0, abstention 1.0. `curie-sample`: all 1.0.
 Isolated runs are not byte-identical: fresh IDs per instance miss the query cache.
+
+Update 2026-10-09: public hosting is prepared, not live. A pre-exposure
+security review found no critical issues; fixed: unbounded request bodies
+(Caddy caps them at 2 MB), the rate limiter keeping every IP forever, and
+passage text able to close its prompt tag (now escaped; `radioactivity` still
+scores 1.0 on all four metrics). `deploy/setup.sh` and `docs/DEPLOY.md` set up
+one Oracle Always Free VM with Caddy, Neo4j and Ollama. Still open: creating
+the VM, automated backups, and OpenTelemetry export.
