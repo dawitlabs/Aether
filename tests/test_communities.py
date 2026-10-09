@@ -1,5 +1,8 @@
 from aether.communities.detect import detect
+from aether.communities.reports import parse_report, prompt
+from aether.storage.communities import CommunityContext
 
+UNIT = "7d2b1c7e-0000-4000-8000-000000000001"
 EDGES = [
     ("a", "b", 1.0), ("b", "c", 1.0), ("a", "c", 0.5),
     ("d", "e", 1.0), ("e", "f", 1.0), ("d", "f", 0.5),
@@ -22,3 +25,29 @@ def test_is_deterministic_and_sums_parallel_edges():
 def test_empty_graph_has_no_communities():
     assert detect([], []) == []
     assert detect(["a", "b"], []) == []
+
+
+
+def test_report_keeps_only_supplied_citations():
+    raw = {"title": " Curies ", "summary": "Physicists.", "findings": [
+        {"text": "They found radium.", "text_unit_ids": [UNIT, "not-supplied", UNIT]},
+        {"text": "Invented.", "text_unit_ids": ["not-supplied"]},
+        {"text": "", "text_unit_ids": [UNIT]},
+        "junk",
+    ]}
+    title, summary, findings = parse_report(raw, {UNIT})
+    assert (title, summary) == ("Curies", "Physicists.")
+    assert [(f.text, [str(i) for i in f.text_unit_ids]) for f in findings] == [
+        ("They found radium.", [UNIT])
+    ]
+
+
+def test_report_needs_title_and_summary():
+    assert parse_report({"title": "x", "summary": " "}, set()) is None
+    assert parse_report({"summary": "x"}, set()) is None
+    assert parse_report({"title": "t", "summary": "s"}, set()) == ("t", "s", [])
+
+
+def test_prompt_marks_passages_with_ids():
+    context = CommunityContext([{"name": "A"}], [], [{"id": UNIT, "text": "Hi."}])
+    assert f'<passage id="{UNIT}">\nHi.\n</passage>' in prompt(context)

@@ -43,8 +43,7 @@ def answer_question(
 ) -> Answer:
     vector = unit_vector(embedder.embed([question])[0])
     index = open_index(index_path, embedder.model, len(vector))
-    entity_ids = [m.source_id for m in index.search(vector, limit=ENTITY_HITS)
-                  if m.source_kind == "entity"]
+    entity_ids = [m.source_id for m in index.search(vector, limit=ENTITY_HITS, kind="entity")]
     units = {}
     for entity_id in entity_ids:
         hood = graph.neighborhood(entity_id)

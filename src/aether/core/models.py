@@ -136,9 +136,20 @@ class Document(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class Finding(BaseModel):
+    text: str = Field(min_length=1)
+    text_unit_ids: list[UUID] = Field(min_length=1)
+
+
 class Community(BaseModel):
-    """A Leiden cluster of entities; derived data, replaced on every rebuild."""
+    """A Leiden cluster of entities; derived data, replaced on every rebuild.
+
+    The report fields stay empty until a report has been generated.
+    """
 
     id: UUID = Field(default_factory=uuid4)
     entity_ids: list[UUID] = Field(min_length=2)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    title: str | None = None
+    summary: str | None = None
+    findings: list[Finding] = Field(default_factory=list)

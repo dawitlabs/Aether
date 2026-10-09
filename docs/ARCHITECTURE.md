@@ -152,6 +152,12 @@ Community rules (`src/aether/communities/`, `storage/communities.py`):
 - `POST /communities/rebuild` queues on the extraction worker and replaces
   every `:Community` node and `IN_COMMUNITY` edge in one transaction.
   Community IDs change on each rebuild.
+- Each rebuild then writes one report per community (`communities/reports.py`):
+  title, summary, and findings. Context is the members, relationships among
+  them, and their 12 most-cited text units. Findings citing no supplied unit
+  are dropped; the summary itself is not citation-checked.
+- Report summaries are embedded as `community` vectors, replacing all previous
+  ones. Vector search filters by kind before applying its limit.
 
 ## Local operation
 

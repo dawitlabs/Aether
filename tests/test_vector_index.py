@@ -78,3 +78,14 @@ def test_invalid_index_configuration_is_rejected(tmp_path, kwargs):
 def test_unknown_source_kind_is_rejected(index):
     with pytest.raises(ValueError, match="source kind"):
         index.upsert(uuid4(), "claim", [1.0, 2.0, 3.0])
+
+
+def test_kind_filter_applies_before_limit_and_delete_kind(index):
+    entity = uuid4()
+    index.upsert(entity, "entity", [0.0, 0.0, 1.0])
+    for _ in range(5):
+        index.upsert(uuid4(), "community", [1.0, 0.0, 0.0])
+    matches = index.search([1.0, 0.0, 0.0], limit=2, kind="entity")
+    assert [m.source_id for m in matches] == [entity]
+    index.delete_kind("community")
+    assert [m.source_id for m in index.search([1.0, 0.0, 0.0], limit=10)] == [entity]

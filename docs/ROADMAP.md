@@ -171,9 +171,9 @@ extensions). Single-level communities only until the graph needs hierarchy.
 
 ## 3. Community reports
 
-- [ ] One report per community: title, summary, findings.
-- [ ] Findings cite only text units that member entities cite.
-- [ ] Report summaries are embedded for retrieval.
+- [x] One report per community: title, summary, findings.
+- [x] Findings cite only text units that member entities cite.
+- [x] Report summaries are embedded for retrieval.
 
 ## 4. Query modes and citations
 

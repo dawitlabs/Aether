@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
-from aether.communities.detect import rebuild
+from aether.communities.reports import rebuild_with_reports
 from aether.core.models import Community, Entity, Relationship, TextUnit
 from aether.query import Answer, answer_question
 from aether.storage.communities import Neo4jCommunityStore
@@ -103,11 +103,14 @@ def rebuild_status(request: Request) -> RebuildStatus:
 
 @router.post("/communities/rebuild", status_code=202)
 def start_rebuild(request: Request) -> RebuildStatus:
-    """Replace all communities. Queued behind any running extraction."""
+    """Replace all communities and their reports. Queued behind any running extraction."""
     state = request.app.state
     job = state.jobs.get(REBUILD)
     if job is None or job.done():
-        job = state.worker.submit(rebuild, community_store(request))
+        job = state.worker.submit(
+            rebuild_with_reports, community_store(request),
+            state.extractor.chat, state.extractor.embedder, state.config.index_dir,
+        )
         job.add_done_callback(log_failure)
         state.jobs[REBUILD] = job
     return rebuild_status(request)

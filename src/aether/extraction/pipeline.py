@@ -65,8 +65,8 @@ class Extractor:
             return exact
         # Unit vectors: LanceDB's squared L2 distance d gives cosine 1 - d/2.
         near = [
-            m.source_id for m in self._index.search(vector, limit=5)
-            if m.source_kind == "entity" and 1 - m.distance / 2 >= self.merge_similarity
+            m.source_id for m in self._index.search(vector, limit=5, kind="entity")
+            if 1 - m.distance / 2 >= self.merge_similarity
         ]
         if not near:
             return None

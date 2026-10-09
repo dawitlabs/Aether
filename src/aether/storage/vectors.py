@@ -14,7 +14,8 @@ from uuid import UUID
 import lancedb
 import pyarrow as pa
 
-SourceKind = Literal["text_unit", "entity"]
+SourceKind = Literal["text_unit", "entity", "community"]
+KINDS = ("text_unit", "entity", "community")
 MODEL_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]{0,99}$")
 
 
@@ -53,7 +54,7 @@ class LanceVectorIndex:
         return vector
 
     def upsert(self, source_id: UUID, source_kind: SourceKind, vector: list[float]) -> None:
-        if source_kind not in ("text_unit", "entity"):
+        if source_kind not in KINDS:
             raise ValueError(f"unknown source kind {source_kind!r}")
         row = {"source_id": str(source_id), "source_kind": source_kind, "vector": self._check(vector)}
         (
@@ -71,8 +72,21 @@ class LanceVectorIndex:
     def delete(self, source_id: UUID) -> None:
         self._table.delete(f"source_id = '{source_id}'")
 
-    def search(self, vector: list[float], *, limit: int = 10) -> list[Match]:
+    def delete_kind(self, source_kind: SourceKind) -> None:
+        if source_kind not in KINDS:
+            raise ValueError(f"unknown source kind {source_kind!r}")
+        self._table.delete(f"source_kind = '{source_kind}'")
+
+    def search(
+        self, vector: list[float], *, limit: int = 10, kind: SourceKind | None = None
+    ) -> list[Match]:
         if type(limit) is not int or not 1 <= limit <= 1000:
             raise ValueError("limit must be an integer between 1 and 1000")
-        rows = self._table.search(self._check(vector)).limit(limit).to_list()
+        if kind is not None and kind not in KINDS:
+            raise ValueError(f"unknown source kind {kind!r}")
+        query = self._table.search(self._check(vector))
+        if kind is not None:
+            # Filter before the limit, so other kinds cannot crowd out matches.
+            query = query.where(f"source_kind = '{kind}'", prefilter=True)
+        rows = query.limit(limit).to_list()
         return [Match(UUID(r["source_id"]), r["source_kind"], r["_distance"]) for r in rows]
