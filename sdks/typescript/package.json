@@ -1,19 +1,18 @@
 {
-  "name": "aether-kg",
+  "name": "aether-client",
   "version": "0.1.0",
   "description": "TypeScript client for Aether, the evidence-backed knowledge graph",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/dawitlabs/Aether.git", "directory": "sdks/typescript" },
   "type": "module",
-  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
-  "files": ["dist"],
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc",
-    "test": "node --test test/*.test.ts",
-    "prepublishOnly": "pnpm test && pnpm build"
+    "test": "node --test test/*.test.ts"
   },
   "devDependencies": {
     "typescript": "^7.0.0"
-  }
+  },
+  "private": true
 }

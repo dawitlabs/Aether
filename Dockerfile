@@ -4,8 +4,9 @@ WORKDIR /app
 COPY pyproject.toml ./
 COPY src ./src
 # Editable so domain packs and scripts resolve from /app like a checkout;
-# dev adds the HTTP test client scripts/demo.py drives the API with.
-RUN pip install --no-cache-dir -e ".[dev]" \
+# dev adds the HTTP test client scripts/demo.py drives the API with; mcp
+# runs examples/mcp_server.py for agents via `docker compose exec`.
+RUN pip install --no-cache-dir -e ".[dev,mcp]" \
     && useradd --system --home /data aether \
     && install -d -o aether /data
 COPY scripts ./scripts

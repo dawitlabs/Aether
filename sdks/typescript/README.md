@@ -1,10 +1,13 @@
-# aether-kg (TypeScript)
+# Aether TypeScript client
 
 Client for the [Aether](https://github.com/dawitlabs/Aether) API. No
 dependencies: uses the built-in `fetch` (Node 18+, Deno, Bun, browsers).
 
+No package to install: copy `src/index.ts` into your project, or import it
+from your clone of the repository.
+
 ```ts
-import { AetherClient } from "aether-kg";
+import { AetherClient } from "./aether/index.ts";
 
 const aether = new AetherClient("http://127.0.0.1:8000", { apiKey: "ae_..." });
 

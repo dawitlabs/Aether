@@ -51,11 +51,17 @@ in `docker-compose.yml` and put keys in `.env`. For a public server, see
 Cursor, or OpenClaw: `aether_query`, `aether_search_entities`,
 `aether_neighborhood`, and `aether_propose_claim`.
 
+With the Docker stack running, the server runs inside the API container, so
+nothing else needs installing:
+
 ```sh
-pip install "mcp==2.3.0"
-claude mcp add aether -e AETHER_URL=http://127.0.0.1:8000 -e AETHER_API_KEY=ae_... \
-  -- python /path/to/Aether/examples/mcp_server.py
+claude mcp add aether -- docker compose -f /path/to/Aether/docker-compose.yml \
+  exec -T -e AETHER_API_KEY=ae_... api python /app/examples/mcp_server.py
 ```
+
+Other MCP clients take the same command (`docker` plus those arguments). With
+the Nix setup instead, run `python examples/mcp_server.py` with `AETHER_URL`
+and `AETHER_API_KEY` set.
 
 Querying works without a key; proposing claims needs an agent key from an
 admin ([AGENTS.md](docs/AGENTS.md)). Proposed claims affect answers only after
