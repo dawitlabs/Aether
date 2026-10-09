@@ -180,13 +180,21 @@ Community rules (`src/aether/communities/`, `storage/communities.py`):
 - Report summaries are embedded as `community` vectors, replacing all previous
   ones. Vector search filters by kind before applying its limit.
 
-Evaluation (`src/aether/evaluation.py`, `scripts/eval.py`, `eval/`):
+Evaluation and domain packs (`src/aether/evaluation.py`, `src/aether/domains.py`,
+`scripts/eval.py`, `domains/`):
 
-- `eval/corpus/` is a fixed document set; `eval/golden.jsonl` lists questions
-  with mode, expected keywords, expected source files, and `answerable`.
-- Scores: keyword recall in the answer, the share of citations from expected
-  documents, and abstention (no citations) matching `answerable`. Each run
-  writes a summary row and per-question rows to `.local/eval/<timestamp>.jsonl`.
+- A domain pack is `domains/<slug>/` with `pack.json` (name, license, sources
+  with URLs and revisions), `corpus/*.txt`, and `golden.jsonl` (questions with
+  mode, keywords, expected source files, and `answerable`). `tests/test_domains.py`
+  validates every pack. Packs: `curie-sample` (hand-written, MIT) and
+  `radioactivity` (ten Wikipedia lead sections, CC BY-SA 4.0).
+- `python scripts/eval.py --domain <slug>` scores keyword recall (alternatives
+  as `a|b`), citation precision over the pack's own documents, abstention, and
+  the share of citations into documents outside the pack. The graph is shared,
+  so other packs' documents can be cited; evaluate in a database holding only
+  that pack for clean numbers. Rows go to `.local/eval/<slug>-<timestamp>.jsonl`.
+- `python scripts/demo.py` runs the agent workflow in-process against real
+  models and removes its contributors and claim afterwards.
 - Text matching everywhere uses `core/text.py`'s `name_key`: NFKC, Unicode
   dashes to `-`, curly quotes to straight, whitespace collapsed, casefolded.
 

@@ -281,8 +281,26 @@ process, and counters are in-process. Export both when the API scales out.
 
 ## 6. First domain pack
 
-- [ ] A domain pack format (corpus, golden questions, sources).
-- [ ] A first pack, the evaluation run against it, and an in-process demo.
+- [x] A domain pack format (corpus, golden questions, sources).
+- [x] A first pack, the evaluation run against it, and an in-process demo.
 
 Exit: an agent registered by an admin proposes a claim, a human accepts it,
 and the agent queries it, all through `/api/v0`; the domain pack evaluates.
+
+Verified 2026-10-09: `tests/integration/test_agent_client.py` runs the exit
+flow through `examples/agent_client.py`, and `python scripts/demo.py` ran it
+against `gpt-oss:120b-cloud` and `all-minilm` on the `radioactivity` pack: the
+neutron question was answered with a verified quote; the agent's Rutherford
+claim was proposed, accepted by a human, and used by the next answer.
+
+`radioactivity` evaluation (12 questions): keyword recall 0.9, in-pack citation
+precision 1.0, abstention 0.917, foreign-citation share 0.455. Findings: the
+shared dev graph lets answers cite the `curie-sample` pack (true but outside
+the pack), and the global "main themes" question picked two narrow
+communities and cited nothing. With both packs loaded, `curie-sample` fell to
+recall 0.889 and abstention 0.909 from 1.0.
+
+Not done: public hosting (needs a deployment decision and a security review
+before the API leaves loopback) and OpenTelemetry export. Phase 5 of the
+supplied roadmap (governance, federation, sustainability) is ongoing work
+without code milestones.
