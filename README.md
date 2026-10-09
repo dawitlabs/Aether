@@ -45,6 +45,74 @@ To use another OpenAI-compatible provider, edit the `LLM_*`/`EMBED_*` values
 in `docker-compose.yml` and put keys in `.env`. For a public server, see
 [Self-hosting on a VPS](docs/DEPLOY.md).
 
+## Command reference
+
+Run from the repository folder. `$KEY` is an API key (`ae_...`); `$ID` is an ID
+returned by an earlier command.
+
+### Run the stack (Docker)
+
+| Command | What it does |
+| --- | --- |
+| `docker compose up -d --build` | Start Neo4j, Ollama, and the API (`http://127.0.0.1:8000`) |
+| `docker compose down` | Stop everything; data is kept |
+| `docker compose down -v` | Stop and **delete all data** |
+| `docker compose ps` | Show what is running |
+| `docker compose logs -f api` | Follow API logs (JSON, no keys) |
+| `git pull && docker compose up -d --build` | Update to the latest version |
+
+### Set up and administer
+
+| Command | What it does |
+| --- | --- |
+| `docker compose exec ollama ollama pull all-minilm` | Download the embedding model (once) |
+| `docker compose exec ollama ollama signin` | Sign in for the cloud chat model (once) |
+| `docker compose exec api python /app/scripts/contributor.py create-admin "Name"` | Create an admin and print its key once |
+| `docker compose exec api python /app/scripts/contributor.py revoke $ID` | Revoke a contributor's key |
+| `docker compose exec api python /app/scripts/demo.py` | Run the full agent workflow on the sample pack |
+
+### Use the API
+
+Check it is up:
+
+```sh
+curl http://127.0.0.1:8000/health      # {"status":"ok"}
+curl http://127.0.0.1:8000/ready       # {"status":"ready"} once Neo4j is reachable
+```
+
+Add knowledge (needs a key with `propose`). Extraction and community rebuilds
+run in the background; poll the `GET` until it reports `complete`:
+
+```sh
+API=http://127.0.0.1:8000/api/v0
+curl -X POST "$API/documents?filename=notes.txt" -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: text/plain; charset=utf-8" --data-binary @notes.txt   # returns the document id
+curl -X POST "$API/documents/$ID/extraction" -H "Authorization: Bearer $KEY"
+curl "$API/documents/$ID/extraction"                                      # status
+curl -X POST "$API/communities/rebuild" -H "Authorization: Bearer $KEY"   # needed for global questions
+curl "$API/communities/rebuild"                                           # status
+```
+
+Ask (no key needed; `mode` is `local`, `global`, or `hybrid`):
+
+```sh
+curl -X POST "$API/query" -H "Content-Type: application/json" \
+  -d '{"question": "Who discovered the neutron?", "mode": "hybrid"}'
+```
+
+Register an agent (admin key) and review its claims (human key with `review`):
+
+```sh
+curl -X POST "$API/contributors" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"type": "agent", "display_name": "my-agent"}'                        # prints the agent key once
+curl "$API/claims?status=proposed"
+curl -X POST "$API/claims/$ID/review" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"decision": "accept", "notes": "checked the source"}'                # or "reject"
+```
+
+Every route, field, and error is in [docs/openapi.json](docs/openapi.json), or
+browse it at `http://127.0.0.1:8000/docs`.
+
 ## Use it from an agent (MCP)
 
 `examples/mcp_server.py` exposes Aether to MCP clients such as Claude Code,
@@ -66,6 +134,36 @@ and `AETHER_API_KEY` set.
 Querying works without a key; proposing claims needs an agent key from an
 admin ([AGENTS.md](docs/AGENTS.md)). Proposed claims affect answers only after
 a human accepts them.
+
+## For AI agents
+
+If you are an AI agent setting up or using Aether, follow these steps exactly.
+
+1. **Check prerequisites:** `git --version` and `docker compose version` must succeed.
+2. **Start:** in the repository folder, if `.env` does not exist, run
+   `echo "NEO4J_PASSWORD=$(openssl rand -hex 24)" > .env`; then
+   `docker compose up -d --build`.
+3. **Wait** until `curl -s http://127.0.0.1:8000/ready` returns `{"status":"ready"}`.
+4. **Models:** run `docker compose exec ollama ollama pull all-minilm`. The chat
+   model needs `docker compose exec ollama ollama signin`, which prints a URL a
+   human must open; ask your user to do it.
+5. **Keys:** your user creates the admin key (`create-admin`, see the command
+   reference) and registers you as an `agent` contributor with it. Use only the
+   agent key you are given; never ask for or hold the admin key, and never write
+   keys to files or logs. Querying needs no key at all.
+6. **Use it:** prefer the MCP tools above. Otherwise call the HTTP API with the
+   Python or TypeScript client below.
+
+Rules:
+
+- An answer with an empty `citations` list means Aether has no support for it;
+  say so instead of answering from your own knowledge.
+- Propose a claim only with an `excerpt` copied verbatim from a passage you
+  received (`text_unit_id` plus its exact text). Paraphrases are rejected (case and
+  whitespace are ignored).
+- You cannot verify claims; only a human reviewer can. Do not ask users for
+  reviewer keys.
+- On HTTP 429, wait for the `Retry-After` seconds; the bundled clients do this.
 
 ## Other languages
 
