@@ -9,6 +9,10 @@ Caddy (TLS, body limit, security headers) in front of the API on
 model; embeddings run on the VM. The address is
 `https://<ip-with-dashes>.sslip.io`, so no domain is needed.
 
+> `deploy/setup.sh` is new and has not yet run end to end on a real VPS. If a
+> step fails, please [open an issue](https://github.com/dawitlabs/Aether/issues)
+> with the output, or send a fix.
+
 ## 1. Create the VM
 
 Any provider works: open TCP 80 and 443 in its firewall and add your SSH key.
