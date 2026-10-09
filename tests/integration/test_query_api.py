@@ -62,14 +62,14 @@ class NameEmbedder:
 
 
 @pytest.fixture
-def graph(database, tmp_path):
+def graph(database, tmp_path, auth):
     driver, name = database
     tag = uuid4().hex[:8]
     bob, acme = f"Bob{tag}", f"Acme{tag}"
     settings = Settings.from_env().model_copy(
         update={"documents_dir": tmp_path / "docs", "index_dir": tmp_path / "index"}
     )
-    with TestClient(create_app(settings)) as client:
+    with TestClient(create_app(settings), headers=auth) as client:
         client.app.state.extractor = Extractor(
             FakeChat(bob, acme), NameEmbedder([bob, acme]),
             Neo4jKnowledgeStore(driver, name), tmp_path / "index",

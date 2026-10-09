@@ -6,6 +6,8 @@ import pytest
 from dotenv import dotenv_values
 from neo4j import GraphDatabase
 
+from aether.core.models import Contributor
+from aether.storage.contributors import Neo4jContributorStore
 from aether.storage.knowledge import Neo4jKnowledgeStore
 from aether.storage.schema import ensure_schema
 from aether.storage.text_units import Neo4jTextUnitStore
@@ -60,3 +62,29 @@ def knowledge(database, document_ids):
         parameters_={"ids": [str(value) for value in created]},
         database_=name,
     )
+
+
+@pytest.fixture
+def make_contributor(database):
+    """Create contributors; returns (contributor, key). Removed afterwards."""
+    driver, name = database
+    store = Neo4jContributorStore(driver, name)
+    created = []
+
+    def make(**fields):
+        contributor = Contributor(**{"type": "human", "display_name": "test", **fields})
+        created.append(str(contributor.id))
+        return contributor, store.create(contributor)
+
+    yield make
+    driver.execute_query(
+        "MATCH (c:Contributor) WHERE c.id IN $ids DETACH DELETE c",
+        parameters_={"ids": created}, database_=name,
+    )
+
+
+@pytest.fixture
+def auth(make_contributor):
+    """Authorization header for an admin who may propose, review, and administer."""
+    _, key = make_contributor(permissions=["propose", "review", "admin"])
+    return {"Authorization": f"Bearer {key}"}

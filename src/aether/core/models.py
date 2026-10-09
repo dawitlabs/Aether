@@ -153,3 +153,22 @@ class Community(BaseModel):
     title: str | None = None
     summary: str | None = None
     findings: list[Finding] = Field(default_factory=list)
+
+
+Permission = Literal["propose", "review", "admin"]
+
+
+class Contributor(BaseModel):
+    """A human or agent identity. Agents may propose and dispute only (ADR-0002)."""
+
+    id: UUID = Field(default_factory=uuid4)
+    type: Literal["human", "agent"]
+    display_name: str = Field(min_length=1, max_length=100)
+    permissions: list[Permission] = Field(default_factory=lambda: ["propose"])
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @model_validator(mode="after")
+    def agents_cannot_review_or_administer(self) -> Self:
+        if self.type == "agent" and {"review", "admin"} & set(self.permissions):
+            raise ValueError("agents may only have the propose permission")
+        return self

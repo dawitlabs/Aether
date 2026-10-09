@@ -1,6 +1,6 @@
 # ADR-0002: Claim contribution and review policy
 
-Status: Accepted; implementation pending
+Status: Accepted; identity implemented, review pending
 
 Date: 2026-10-09
 

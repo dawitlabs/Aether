@@ -85,3 +85,4 @@ def test_claim_rejects_invalid_scores_and_states(field, value):
     with pytest.raises(ValidationError) as error:
         Claim(**data)
     assert error.value.errors()[0]["loc"] == (field,)
+

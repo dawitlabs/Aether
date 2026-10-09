@@ -10,13 +10,15 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from dotenv import dotenv_values
-from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from neo4j import Driver, GraphDatabase
 from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import BaseModel, ConfigDict, Field
 
+from aether.api.auth import require
+from aether.api.contributors import router as contributors_router
 from aether.api.graph import log_failure
 from aether.api.graph import router as graph_router
 from aether.core.models import Document, TextUnit
@@ -114,6 +116,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="Aether", version="0.1.0", lifespan=lifespan)
     app.state.config = config
     app.include_router(graph_router)
+    app.include_router(contributors_router)
 
     @app.exception_handler(DriverError)
     @app.exception_handler(Neo4jError)
@@ -151,6 +154,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         "/documents",
         status_code=201,
         responses={200: {"description": "Same bytes already uploaded"}, 503: UNAVAILABLE},
+        dependencies=[Depends(require("propose"))],
     )
     async def upload_document(
         request: Request,
@@ -226,6 +230,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         "/documents/{document_id}/extraction",
         status_code=202,
         responses={404: {}, 503: UNAVAILABLE},
+        dependencies=[Depends(require("propose"))],
     )
     def start_extraction(request: Request, document_id: UUID) -> ExtractionStatus:
         """Queue LLM extraction. Idempotent: finished units are skipped."""

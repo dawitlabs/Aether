@@ -5,9 +5,10 @@ from concurrent.futures import Future
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
+from aether.api.auth import require
 from aether.communities.reports import rebuild_with_reports
 from aether.core.models import Community, Entity, Relationship, TextUnit
 from aether.query import Answer, Mode, answer_question
@@ -105,7 +106,9 @@ def rebuild_status(request: Request) -> RebuildStatus:
     return RebuildStatus(status="failed" if job.exception() else "complete")
 
 
-@router.post("/communities/rebuild", status_code=202)
+@router.post(
+    "/communities/rebuild", status_code=202, dependencies=[Depends(require("propose"))]
+)
 def start_rebuild(request: Request) -> RebuildStatus:
     """Replace all communities and their reports. Queued behind any running extraction."""
     state = request.app.state

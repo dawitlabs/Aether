@@ -10,11 +10,11 @@ PLAIN = {"content-type": "text/plain; charset=utf-8"}
 
 
 @pytest.fixture
-def client(database, tmp_path):
+def client(database, tmp_path, auth):
     driver, name = database
     uploaded = []
     settings = Settings.from_env().model_copy(update={"documents_dir": tmp_path})
-    with TestClient(create_app(settings)) as test_client:
+    with TestClient(create_app(settings), headers=auth) as test_client:
         yield test_client, uploaded, tmp_path
     driver.execute_query(
         "MATCH (n) WHERE (n:Document AND n.id IN $ids) "
@@ -78,3 +78,13 @@ def test_unknown_document_is_404(client):
     missing = uuid4()
     assert test_client.get(f"/documents/{missing}").status_code == 404
     assert test_client.get(f"/documents/{missing}/text-units").status_code == 404
+
+
+@pytest.mark.parametrize("headers,body,status", [
+    ({"content-type": "application/json"}, b"{}", 415),
+    ({"content-type": "text/plain; charset=latin-1"}, b"x", 415),
+    ({"content-type": "text/plain"}, b"x" * (1_048_576 + 1), 413),
+])
+def test_upload_rejects_wrong_type_or_size(client, headers, body, status):
+    test_client, _, _ = client
+    assert test_client.post("/documents", content=body, headers=headers).status_code == status

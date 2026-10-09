@@ -114,7 +114,8 @@ Ingestion rules (`src/aether/ingestion.py`):
 - The document and all of its text units are written in one transaction.
 - Database failures return 503 without details. The driver retries transient
   errors for at most 3 seconds per query.
-- The API has no authentication. It must stay bound to loopback until auth exists.
+- Writes need an API key (see Identity rules). Without rate limiting or a
+  security review the API must still stay bound to loopback.
 
 Extraction rules (`src/aether/extraction/`):
 
@@ -174,6 +175,20 @@ Evaluation (`src/aether/evaluation.py`, `scripts/eval.py`, `eval/`):
   writes a summary row and per-question rows to `.local/eval/<timestamp>.jsonl`.
 - Text matching everywhere uses `core/text.py`'s `name_key`: NFKC, Unicode
   dashes to `-`, curly quotes to straight, whitespace collapsed, casefolded.
+
+Identity rules (`api/auth.py`, `storage/contributors.py`, ADR-0002):
+
+- Contributors are `human` or `agent` with `propose`, `review`, or `admin`;
+  agents may hold only `propose`, enforced by the model.
+- Keys are `ae_` plus 32 random bytes, shown once, stored as SHA-256 hashes.
+  Clients send `Authorization: Bearer <key>`.
+- Every write route requires `propose` (contributor creation requires
+  `admin`); reads stay open. `POST /query` counts as a read, though each call
+  spends LLM quota.
+- Missing or unknown keys get 401; a missing permission gets 403; a database
+  outage during the check gets 503, never access.
+- `python scripts/contributor.py create-admin "Name"` makes the first admin;
+  `revoke <id>` clears a key's hash and keeps the contributor for attribution.
 
 ## Local operation
 

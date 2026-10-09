@@ -37,13 +37,13 @@ class OneHotEmbedder:
 
 
 @pytest.fixture
-def client(database, tmp_path):
+def client(database, tmp_path, auth):
     driver, name = database
     settings = Settings.from_env().model_copy(
         update={"documents_dir": tmp_path / "docs", "index_dir": tmp_path / "index"}
     )
     uploaded = []
-    with TestClient(create_app(settings)) as test_client:
+    with TestClient(create_app(settings), headers=auth) as test_client:
         yield test_client, uploaded
     driver.execute_query(
         "MATCH (t:TextUnit) WHERE t.source_document_id IN $ids "

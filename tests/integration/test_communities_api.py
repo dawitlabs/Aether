@@ -58,9 +58,9 @@ def clusters(knowledge, store, document_ids):
     return [e.id for e in entities]
 
 
-def test_rebuild_groups_clusters_and_writes_grounded_reports(clusters, database, tmp_path):
+def test_rebuild_groups_clusters_and_writes_grounded_reports(clusters, database, tmp_path, auth):
     settings = Settings.from_env().model_copy(update={"index_dir": tmp_path})
-    with TestClient(create_app(settings)) as client:
+    with TestClient(create_app(settings), headers=auth) as client:
         client.app.state.extractor = Extractor(ReportChat(), FixedEmbedder(), None, tmp_path)
         assert client.get("/communities/rebuild").json() == {"status": "not_started"}
         assert client.post("/communities/rebuild").status_code == 202

@@ -36,19 +36,18 @@ def test_save_original_is_idempotent(tmp_path):
     assert (tmp_path / "abc.txt").read_bytes() == b"one"
 
 
-@pytest.mark.parametrize(
-    "headers,body,status",
-    [
-        ({"content-type": "application/json"}, b"{}", 415),
-        ({"content-type": "text/plain; charset=latin-1"}, b"x", 415),
-        ({"content-type": "text/plain"}, b"x" * (1_048_576 + 1), 413),
-        ({"content-type": "text/plain"}, b"hello", 503),
-    ],
-)
-def test_upload_rejections_without_database(headers, body, status):
+@pytest.mark.parametrize("body", [b"hello", b"x" * (1_048_576 + 1)])
+def test_upload_without_key_is_401_before_the_body_is_checked(body):
     with TestClient(create_app(UNREACHABLE)) as client:
-        response = client.post("/documents", content=body, headers=headers)
-    assert response.status_code == status
+        response = client.post("/documents", content=body, headers={"content-type": "text/plain"})
+    assert response.status_code == 401
+
+
+def test_key_check_fails_closed_without_database():
+    headers = {"content-type": "text/plain", "Authorization": "Bearer ae_anything"}
+    with TestClient(create_app(UNREACHABLE)) as client:
+        response = client.post("/documents", content=b"hello", headers=headers)
+    assert response.status_code == 503
     assert "Traceback" not in response.text
 
 

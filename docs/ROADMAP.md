@@ -207,9 +207,9 @@ verified claims inform answers. Policy: [ADR-0002](adr/0002-contribution-policy.
 
 ## 1. Identity
 
-- [ ] Contributor records with hashed API keys and permissions.
-- [ ] A local script creates the first admin; admins create contributors.
-- [ ] Every write endpoint requires a valid key; reads stay open.
+- [x] Contributor records with hashed API keys and permissions.
+- [x] A local script creates the first admin; admins create contributors.
+- [x] Every write endpoint requires a valid key; reads stay open.
 
 ## 2. Proposals
 
