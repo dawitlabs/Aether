@@ -1,0 +1,23 @@
+[Unit]
+Description=Aether API
+After=network-online.target neo4j.service ollama.service
+Wants=network-online.target neo4j.service ollama.service
+
+[Service]
+User=aether
+WorkingDirectory=/var/lib/aether
+EnvironmentFile=/etc/aether/aether.env
+# One worker: rate limits and extraction jobs live in process memory.
+# Uvicorn reads X-Forwarded-For right to left and stops at the first untrusted
+# hop, so clients cannot forge their IP past Caddy.
+ExecStart=/opt/aether/venv/bin/uvicorn --factory aether.api.app:create_app \
+    --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/aether
+
+[Install]
+WantedBy=multi-user.target
