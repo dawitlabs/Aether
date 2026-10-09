@@ -12,6 +12,7 @@ from aether.api.auth import require
 from aether.communities.reports import rebuild_with_reports
 from aether.core.models import Community, Entity, Relationship, TextUnit
 from aether.query import Answer, Mode, answer_question
+from aether.storage.claims import Neo4jClaimStore
 from aether.storage.communities import Neo4jCommunityStore
 from aether.storage.graph import Neo4jGraphReader
 
@@ -73,8 +74,8 @@ def get_neighborhood(request: Request, entity_id: UUID) -> NeighborhoodOut:
 
 @router.post("/query", responses={502: {"description": "Model provider unavailable"}})
 def query(request: Request, body: Question) -> Answer:
-    """Answer with verified quotes. Modes: local (entities), global (community
-    reports), or hybrid (both)."""
+    """Answer with verified quotes. Modes: local (entities and their verified
+    claims), global (community reports), or hybrid (both)."""
     extractor = request.app.state.extractor
     return answer_question(
         body.question,
@@ -83,6 +84,7 @@ def query(request: Request, body: Question) -> Answer:
         embedder=extractor.embedder,
         graph=reader(request),
         communities=community_store(request),
+        claims=Neo4jClaimStore(request.app.state.driver, request.app.state.config.neo4j_database),
         index_path=request.app.state.config.index_dir,
     )
 

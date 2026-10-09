@@ -9,7 +9,7 @@ NAMES = {DOC_A: "a.txt", DOC_B: "b.txt"}
 
 def answer(text, *documents):
     return Answer(
-        answer=text, entity_ids=[], community_ids=[],
+        answer=text, entity_ids=[], community_ids=[], claim_ids=[],
         citations=[Citation(text_unit_id=uuid4(), document_id=d, quote="q") for d in documents],
     )
 

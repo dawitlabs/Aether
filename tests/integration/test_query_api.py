@@ -85,7 +85,8 @@ def graph(database, tmp_path, auth):
         yield client, bob, acme
     driver.execute_query(
         "MATCH (t:TextUnit {source_document_id: $id}) "
-        "OPTIONAL MATCH (t)<-[:CITES|OF]-(n) DETACH DELETE n",
+        "OPTIONAL MATCH (t)<-[:CITES|OF]-(n) "
+        "OPTIONAL MATCH (r:Review)-[:REVIEWS]->(n) DETACH DELETE r, n",
         parameters_={"id": document_id}, database_=name,
     )
     driver.execute_query(
@@ -159,4 +160,24 @@ def test_query_without_matching_entities_skips_the_model(database, tmp_path):
             FakeChat("x", "y"), NameEmbedder([]), None, tmp_path / "empty"
         )
         body = client.post("/query", json={"question": "Anything?"}).json()
-    assert body == {"answer": None, "citations": [], "entity_ids": [], "community_ids": []}
+    assert body == {
+        "answer": None, "citations": [], "entity_ids": [], "community_ids": [], "claim_ids": [],
+    }
+
+
+def test_local_query_includes_verified_claims_about_matched_entities(graph, make_contributor):
+    client, bob, acme = graph
+    bob_entity = client.get("/entities", params={"name": bob}).json()[0]
+    unit = client.get(f"/entities/{bob_entity['id']}/neighborhood").json()["text_units"][0]
+    claim = client.post("/claims", json={
+        "statement": f"{bob} is employed by {acme}.", "subject_id": bob_entity["id"],
+        "confidence": 0.9, "evidence": [{"text_unit_id": unit["id"], "excerpt": "works for"}],
+    }).json()["claim"]["id"]
+    question = {"question": f"Who employs {bob}?"}
+    assert claim not in client.post("/query", json=question).json()["claim_ids"]
+
+    _, reviewer_key = make_contributor(permissions=["review"])
+    client.post(f"/claims/{claim}/review", json={"decision": "accept"},
+                headers={"Authorization": f"Bearer {reviewer_key}"})
+
+    assert claim in client.post("/query", json=question).json()["claim_ids"]

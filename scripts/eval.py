@@ -21,6 +21,7 @@ from aether.extraction.llm import LLMClient
 from aether.extraction.pipeline import Extractor
 from aether.ingestion import ingest
 from aether.query import answer_question
+from aether.storage.claims import Neo4jClaimStore
 from aether.storage.communities import Neo4jCommunityStore
 from aether.storage.documents import Neo4jDocumentStore
 from aether.storage.graph import Neo4jGraphReader
@@ -60,7 +61,8 @@ def main() -> None:
         for golden in goldens:
             answer = answer_question(
                 golden.question, golden.mode, chat=chat, embedder=embedder,
-                graph=graph, communities=communities, index_path=config.index_dir,
+                graph=graph, communities=communities,
+                claims=Neo4jClaimStore(driver, db), index_path=config.index_dir,
             )
             scores.append(score(golden, answer, filenames))
 
