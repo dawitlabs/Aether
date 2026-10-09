@@ -15,9 +15,10 @@ from pathlib import Path
 from uuid import UUID
 
 from aether.core.models import Entity, ProvenanceRef, Relationship, TextUnit
+from aether.core.text import name_key
 from aether.extraction.extract import PROMPT_VERSION, EntityCandidate, extract
 from aether.extraction.llm import LLMClient
-from aether.storage.knowledge import DuplicateRecordError, Neo4jKnowledgeStore, name_key
+from aether.storage.knowledge import DuplicateRecordError, Neo4jKnowledgeStore
 from aether.storage.vectors import LanceVectorIndex
 
 # ponytail: one global cosine threshold, checked on six all-minilm pairs only:

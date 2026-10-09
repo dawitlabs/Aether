@@ -13,8 +13,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from aether.core.text import name_key as normalize
 from aether.extraction.llm import LLMClient
-from aether.storage.knowledge import name_key as normalize
 
 log = logging.getLogger("aether.extraction")
 

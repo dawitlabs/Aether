@@ -9,7 +9,8 @@ from uuid import UUID
 from neo4j import Driver
 
 from aether.core.models import Entity, Relationship, TextUnit
-from aether.storage.knowledge import M, _load, name_key
+from aether.core.text import name_key
+from aether.storage.knowledge import M, _load
 from aether.storage.text_units import _model as load_text_unit
 
 

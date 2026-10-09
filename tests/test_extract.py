@@ -84,3 +84,9 @@ def test_extract_wraps_text_as_untrusted_passage():
     client = FakeClient()
     assert extract(client, TEXT).entities[0].name == "Ada Lovelace"
     assert client.user == f"<passage>\n{TEXT}\n</passage>"
+
+
+def test_excerpt_match_ignores_dash_and_quote_variants():
+    text = "Irène Joliot-Curie said \"hello\"."
+    variant = entity("Irène Joliot‑Curie", "Joliot‑Curie said “hello”")
+    assert parse({"entities": [variant]}, text).entities[0].name == "Irène Joliot‑Curie"

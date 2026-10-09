@@ -6,7 +6,7 @@ global: the nearest community reports supply background and the text units
 hybrid: both, with local units first.
 
 Only text units are citable. A citation is kept only if it names a supplied
-unit and its quote appears verbatim (ignoring case and whitespace) in it.
+unit and its quote appears verbatim in it (see core/text.py for what is ignored).
 """
 
 from pathlib import Path
@@ -16,11 +16,11 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from aether.core.models import Community, TextUnit
+from aether.core.text import name_key
 from aether.extraction.llm import LLMClient
 from aether.extraction.pipeline import open_index, unit_vector
 from aether.storage.communities import Neo4jCommunityStore
 from aether.storage.graph import Neo4jGraphReader
-from aether.storage.knowledge import name_key
 from aether.storage.vectors import LanceVectorIndex
 
 Mode = Literal["local", "global", "hybrid"]

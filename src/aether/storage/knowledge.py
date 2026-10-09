@@ -15,6 +15,7 @@ from neo4j.exceptions import ConstraintError
 from pydantic import BaseModel
 
 from aether.core.models import Claim, Entity, ProvenanceRef, Relationship
+from aether.core.text import name_key
 
 Label = Literal["TextUnit", "Entity", "Relationship", "Claim"]
 # (edge type, target label, target id)
@@ -111,11 +112,6 @@ def _relationship_node(relationship: Relationship) -> tuple[Row, list[Row], list
         ("TO", "Entity", str(node["target_id"])),
     ]
     return node, node.pop("provenance"), links
-
-
-def name_key(name: str) -> str:
-    """Case- and whitespace-insensitive comparison key for names."""
-    return " ".join(name.split()).casefold()
 
 
 class Neo4jKnowledgeStore:
