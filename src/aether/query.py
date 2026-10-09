@@ -10,7 +10,7 @@ Only text units are citable. A citation is kept only if it names a supplied
 unit and its quote appears verbatim in it (see core/text.py for what is ignored).
 """
 
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 from typing import Any, Literal
 from uuid import UUID
@@ -89,6 +89,8 @@ def _citations(raw: Any, units: dict[str, TextUnit]) -> list[Citation]:
         quote = item.get("quote")
         if unit is None or not isinstance(quote, str) or not quote.strip():
             continue
+        # Passages reach the model escaped, so it may copy "&amp;" for "&".
+        quote = unescape(quote)
         if name_key(quote) in name_key(unit.text):
             kept.setdefault((str(unit.id), name_key(quote)), Citation(
                 text_unit_id=unit.id, document_id=unit.source_document_id, quote=quote.strip()
@@ -97,15 +99,14 @@ def _citations(raw: Any, units: dict[str, TextUnit]) -> list[Citation]:
 
 
 def context(reports: list[Community], claims: list[Claim], units: dict[str, TextUnit]) -> str:
-    """Prompt context. Contributor- and model-written text is escaped so it cannot
-    close its tag. Passages stay raw because quotes are verified against them
-    verbatim; the system prompt marks them untrusted."""
+    """Prompt context. All text is escaped so it cannot close its tag; quotes are
+    unescaped before verification against the raw passage."""
     sections = [
         f"<report>\n{escape(r.title or '')}\n{escape(r.summary or '')}\n</report>"
         for r in reports
     ]
     sections += [f'<claim verified="true">\n{escape(c.statement)}\n</claim>' for c in claims]
-    sections += [f'<passage id="{i}">\n{u.text}\n</passage>' for i, u in units.items()]
+    sections += [f'<passage id="{i}">\n{escape(u.text)}\n</passage>' for i, u in units.items()]
     return "\n\n".join(sections)
 
 
