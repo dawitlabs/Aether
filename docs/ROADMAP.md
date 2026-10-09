@@ -320,3 +320,10 @@ dev graph is untouched. Isolated results on the MIT text: `radioactivity`
 keyword recall 0.95, citation precision 1.0, abstention 1.0, foreign-citation
 share 0.0; `curie-sample` 1.0 / 1.0 / 1.0 / 0.0. The "main themes" question
 now cites in-pack sources but recalls half its keywords.
+
+Update 2026-10-09: global answers now get up to ten community reports instead
+of three; three missed whole themes on corpus-wide questions. `radioactivity`:
+the "main themes" answer now covers the people as well as the physics (keyword
+recall varies 0.5 to 1.0 between runs on whether it says "Nobel"); summary
+recall 0.95 to 1.0, precision 1.0, abstention 1.0. `curie-sample`: all 1.0.
+Isolated runs are not byte-identical: fresh IDs per instance miss the query cache.
