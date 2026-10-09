@@ -32,10 +32,19 @@ class FlakyChat:
 
 
 class OneHotEmbedder:
+    """Each distinct text gets its own axis, so no two entities ever look alike.
+
+    (hash() % 64 collided about one run in twenty, merging entities.)
+    """
+
     model = "fake-embed"
 
+    def __init__(self):
+        self.axes = {}
+
     def embed(self, texts):
-        return [[1.0 if i == hash(t) % 64 else 0.0 for i in range(64)] for t in texts]
+        axes = [self.axes.setdefault(t, len(self.axes)) for t in texts]
+        return [[1.0 if i == axis else 0.0 for i in range(64)] for axis in axes]
 
 
 @pytest.fixture
