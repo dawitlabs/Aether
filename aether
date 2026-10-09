@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# Run Aether from this clone with Docker. Start with: ./aether onboard
+set -euo pipefail
+
+cd "$(dirname "$0")"
+API=http://127.0.0.1:8000
+
+usage() {
+  cat <<'EOF'
+Usage: ./aether <command>
+
+  onboard   First-time setup: start everything, pick a chat model, create your admin key
+  up        Start Aether (http://127.0.0.1:8000)
+  down      Stop Aether (data is kept)
+  status    Show containers and whether the API is ready
+  logs      Follow the API logs
+  update    Pull the latest code and restart
+  admin     Create another admin key:   ./aether admin "Your Name"
+  agent     Register an agent:          ./aether agent "agent-name" (needs AETHER_ADMIN_KEY)
+  mcp       Print the command that connects Claude Code (or any MCP client)
+  demo      Run the full agent workflow on the sample radioactivity pack
+EOF
+}
+
+say() { printf '\n== %s\n' "$*"; }
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+compose() { docker compose "$@"; }
+
+need_docker() {
+  command -v docker >/dev/null || die "Docker is not installed: https://docs.docker.com/get-docker/"
+  docker compose version >/dev/null 2>&1 || die "Docker Compose v2 is missing: https://docs.docker.com/compose/install/"
+  docker info >/dev/null 2>&1 || die "Docker is installed but not running. Start Docker and retry."
+}
+
+wait_ready() {
+  printf 'Waiting for the API'
+  for _ in $(seq 1 90); do
+    if curl -fs "$API/ready" >/dev/null 2>&1; then echo " ready."; return; fi
+    printf '.'; sleep 2
+  done
+  echo; die "API not ready after 3 minutes; see ./aether logs"
+}
+
+set_env() {  # set_env KEY VALUE: add or replace one line in .env
+  touch .env
+  grep -v "^$1=" .env > .env.tmp || true
+  printf '%s=%s\n' "$1" "$2" >> .env.tmp && mv .env.tmp .env && chmod 600 .env
+}
+
+choose_model() {
+  say "Chat model"
+  echo "  1) Ollama cloud, gpt-oss:120b-cloud (free tier; needs an Ollama account)"
+  echo "  2) Another OpenAI-compatible provider (OpenAI, Groq, OpenRouter, ...)"
+  read -rp "Choose [1]: " choice
+  if [[ ${choice:-1} == 2 ]]; then
+    read -rp "Base URL (e.g. https://api.openai.com/v1): " url
+    read -rp "Model name: " model
+    read -rsp "API key (hidden): " key; echo
+    [[ -n $url && -n $model ]] || die "base URL and model are required"
+    set_env AETHER_LLM_BASE_URL "$url"
+    set_env AETHER_LLM_MODEL "$model"
+    set_env AETHER_LLM_API_KEY "$key"
+    return 1
+  fi
+}
+
+create_admin() {
+  compose exec -T api python /app/scripts/contributor.py create-admin "$1"
+  echo "Save this key now (a password manager is ideal); it is not shown again."
+}
+
+onboard() {
+  need_docker
+  local first_run=false
+  if ! grep -qs '^NEO4J_PASSWORD=' .env; then
+    first_run=true
+    set_env NEO4J_PASSWORD "$(openssl rand -hex 24 2>/dev/null || head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+  fi
+  local uses_ollama_cloud=true
+  if $first_run; then choose_model || uses_ollama_cloud=false; fi
+
+  say "Starting (the first run downloads about 2 GB)"
+  compose up -d --build
+  wait_ready
+
+  say "Embedding model"
+  compose exec -T ollama ollama pull all-minilm
+  if $uses_ollama_cloud && ! grep -qs '^AETHER_LLM_BASE_URL=' .env; then
+    say "Ollama sign-in: open the URL it prints, then come back"
+    compose exec ollama ollama signin || echo "Sign-in skipped; run later: docker compose exec ollama ollama signin"
+  fi
+
+  if $first_run; then
+    say "Admin key"
+    read -rp "Your name: " name
+    create_admin "${name:-Admin}"
+  else
+    echo "Already onboarded; create another admin key with ./aether admin \"Name\""
+  fi
+
+  say "Done"
+  echo "API:   $API   (docs: $API/docs)"
+  echo "Try:   ./aether demo"
+  echo "Agent: ./aether mcp"
+}
+
+register_agent() {
+  [[ -n ${AETHER_ADMIN_KEY:-} ]] || die "set AETHER_ADMIN_KEY to an admin key first"
+  [[ $1 =~ ^[A-Za-z0-9._\ -]{1,100}$ ]] || die "agent name: letters, digits, space, . _ - only"
+  curl -fsS -X POST "$API/api/v0/contributors" \
+    -H "Authorization: Bearer $AETHER_ADMIN_KEY" -H "Content-Type: application/json" \
+    -d "{\"type\": \"agent\", \"display_name\": \"$1\"}"
+  echo
+}
+
+case ${1:-help} in
+  onboard) onboard ;;
+  up) need_docker; compose up -d --build; wait_ready ;;
+  down) compose down ;;
+  status) compose ps; curl -fs "$API/ready" && echo || echo "API not ready" ;;
+  logs) compose logs -f api ;;
+  update) git pull --ff-only; compose up -d --build; wait_ready ;;
+  admin) create_admin "${2:?usage: ./aether admin \"Your Name\"}" ;;
+  agent) register_agent "${2:?usage: ./aether agent \"agent-name\"}" ;;
+  mcp)
+    echo "claude mcp add aether -- docker compose -f $PWD/docker-compose.yml \\"
+    echo "  exec -T -e AETHER_API_KEY=<agent key> api python /app/examples/mcp_server.py"
+    echo "(Querying works without a key: drop the -e AETHER_API_KEY=... part.)" ;;
+  demo) compose exec api python /app/scripts/demo.py ;;
+  help|-h|--help) usage ;;
+  *) usage; exit 2 ;;
+esac
