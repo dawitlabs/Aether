@@ -98,7 +98,8 @@ in Phase 3.
 
 - [x] Chat requests with JSON output, timeout, and backoff on 429/5xx.
 - [x] Embedding requests through the same client.
-- [ ] Unit tests use a fake; one live call against Ollama returns valid JSON.
+- [x] Unit tests use a fake; one live call against Ollama returns valid JSON
+  (`AETHER_TEST_LLM=1 pytest tests/integration/test_llm_live.py`).
 
 ## 2. Versioned prompt and parser
 
