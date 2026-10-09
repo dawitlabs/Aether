@@ -25,3 +25,5 @@ dev = [
     "pytest",
     "httpx2==2.13.1",
 ]
+# examples/mcp_server.py only.
+mcp = ["mcp==2.3.0"]
