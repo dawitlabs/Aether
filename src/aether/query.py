@@ -28,7 +28,9 @@ from aether.storage.vectors import LanceVectorIndex
 
 Mode = Literal["local", "global", "hybrid"]
 ENTITY_HITS = 3
-COMMUNITY_HITS = 3
+# Corpus-wide questions ("main themes") need most reports, not the nearest few.
+# ponytail: fixed top 10; map-reduce over all reports when graphs outgrow it.
+COMMUNITY_HITS = 10
 MAX_UNITS = 8
 SYSTEM_PROMPT = """\
 Answer the question using only the reports, verified claims, and numbered
