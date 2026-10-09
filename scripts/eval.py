@@ -26,6 +26,7 @@ from aether.storage.communities import Neo4jCommunityStore
 from aether.storage.documents import Neo4jDocumentStore
 from aether.storage.graph import Neo4jGraphReader
 from aether.storage.knowledge import Neo4jKnowledgeStore
+from aether.storage.merges import Neo4jMergeStore
 from aether.storage.schema import ensure_schema
 from aether.storage.text_units import Neo4jTextUnitStore
 
@@ -47,7 +48,8 @@ def main() -> None:
         db = config.neo4j_database
         ensure_schema(driver, db)
         documents = Neo4jDocumentStore(driver, db)
-        extractor = Extractor(chat, embedder, Neo4jKnowledgeStore(driver, db), config.index_dir)
+        extractor = Extractor(chat, embedder, Neo4jKnowledgeStore(driver, db), config.index_dir,
+                              merges=Neo4jMergeStore(driver, db))
         filenames = {}
         for path in sorted((ROOT / "eval/corpus").glob("*.txt")):
             document, _ = ingest(path.read_bytes(), path.name, documents, config.documents_dir)

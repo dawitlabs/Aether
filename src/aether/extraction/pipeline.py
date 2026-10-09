@@ -2,8 +2,10 @@
 
 Resolution reuses an existing active entity of the same type when its name key
 matches exactly, or when its embedding is close enough. Otherwise a new entity
-is created. Units are meant to be processed one at a time: concurrent runs can
-create duplicate entities, but never a duplicate extraction of one unit.
+is created; if an existing one was similar but not close enough, the pair is
+queued as a merge candidate for human review. Units are meant to be processed
+one at a time: concurrent runs can create duplicate entities, but never a
+duplicate extraction of one unit.
 
 Vectors are upserted after the graph commit. If that fails, entity embeddings
 remain in Neo4j, so the index can be rebuilt from there.
@@ -19,6 +21,7 @@ from aether.core.text import name_key
 from aether.extraction.extract import PROMPT_VERSION, EntityCandidate, extract
 from aether.extraction.llm import LLMClient
 from aether.storage.knowledge import DuplicateRecordError, Neo4jKnowledgeStore
+from aether.storage.merges import Neo4jMergeStore
 from aether.storage.vectors import LanceVectorIndex
 
 # ponytail: one global cosine threshold, checked on six all-minilm pairs only:
@@ -26,6 +29,9 @@ from aether.storage.vectors import LanceVectorIndex
 # "Marie"/"Pierre Curie" 0.84. A wrong merge is worse than a duplicate, so it
 # errs high. Recalibrate on a labelled set when changing the embedding model.
 MERGE_SIMILARITY = 0.95
+# Same-type pairs from here up to MERGE_SIMILARITY are queued for human review
+# (e.g. "Marie Curie"/"Marie Skłodowska-Curie" at 0.85; "Pierre Curie" was 0.84).
+REVIEW_SIMILARITY = 0.85
 
 
 def unit_vector(vector: list[float]) -> list[float]:
@@ -34,7 +40,8 @@ def unit_vector(vector: list[float]) -> list[float]:
 
 
 def open_index(path: Path, embed_model: str, dimensions: int) -> LanceVectorIndex:
-    return LanceVectorIndex(path, model=embed_model.replace(":", "-").lower(), dimensions=dimensions)
+    model = embed_model.replace(":", "-").lower()
+    return LanceVectorIndex(path, model=model, dimensions=dimensions)
 
 
 def embedding_text(entity: EntityCandidate) -> str:
@@ -48,6 +55,8 @@ class Extractor:
     store: Neo4jKnowledgeStore
     index_path: Path
     merge_similarity: float = MERGE_SIMILARITY
+    review_similarity: float = REVIEW_SIMILARITY
+    merges: Neo4jMergeStore | None = None
     _index: LanceVectorIndex | None = field(default=None, init=False)
 
     @property
@@ -60,19 +69,25 @@ class Extractor:
             self._index = open_index(self.index_path, self.embedder.model, len(vectors[0]))
         return vectors
 
-    def _match(self, candidate: EntityCandidate, vector: list[float]) -> UUID | None:
+    def _match(
+        self, candidate: EntityCandidate, vector: list[float]
+    ) -> tuple[UUID | None, tuple[UUID, float] | None]:
+        """(entity to reuse, or None; else an uncertain look-alike to queue, or None)."""
         exact = self.store.find_entity(candidate.name, candidate.type)
         if exact or self._index is None:
-            return exact
+            return exact, None
         # Unit vectors: LanceDB's squared L2 distance d gives cosine 1 - d/2.
         near = [
-            m.source_id for m in self._index.search(vector, limit=5, kind="entity")
-            if 1 - m.distance / 2 >= self.merge_similarity
+            (m.source_id, 1 - m.distance / 2)
+            for m in self._index.search(vector, limit=5, kind="entity")
+            if 1 - m.distance / 2 >= self.review_similarity
         ]
-        if not near:
-            return None
-        allowed = self.store.active_entity_ids(near, candidate.type)
-        return next((i for i in near if i in allowed), None)
+        ids = [i for i, _ in near]
+        allowed = self.store.active_entity_ids(ids, candidate.type) if ids else set()
+        best = next(((i, sim) for i, sim in near if i in allowed), None)
+        if best is None:
+            return None, None
+        return (best[0], None) if best[1] >= self.merge_similarity else (None, best)
 
     def run(self, unit: TextUnit) -> bool:
         """Return False when this unit was already extracted with this marker."""
@@ -90,9 +105,10 @@ class Extractor:
         ids: dict[str, UUID] = {}
         new: list[tuple[Entity, list[float]]] = []
         citations: list[tuple[UUID, ProvenanceRef]] = []
+        lookalikes: list[tuple[UUID, UUID, float]] = []
         for candidate, vector in zip(result.entities, vectors, strict=True):
             provenance = ref(candidate.excerpt, candidate.confidence)
-            existing = self._match(candidate, vector)
+            existing, lookalike = self._match(candidate, vector)
             if existing:
                 citations.append((existing, provenance))
                 ids[name_key(candidate.name)] = existing
@@ -103,6 +119,8 @@ class Extractor:
             )
             new.append((entity, vector))
             ids[name_key(candidate.name)] = entity.id
+            if lookalike:
+                lookalikes.append((entity.id, *lookalike))
 
         relationships = [
             Relationship(
@@ -123,4 +141,8 @@ class Extractor:
         if self._index is not None:
             for entity, vector in new:
                 self._index.upsert(entity.id, "entity", vector)
+        # ponytail: separate from the extraction transaction; a failure here
+        # loses only a review suggestion, never graph data.
+        if self.merges is not None and lookalikes:
+            self.merges.add_candidates(lookalikes)
         return True

@@ -184,3 +184,15 @@ class Review(BaseModel):
     kind: Literal["accept", "reject", "dispute"]
     notes: str = Field(default="", max_length=2000)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class MergeCandidate(BaseModel):
+    """Two same-type entities that may be one; a human decides (Phase 4)."""
+
+    id: UUID = Field(default_factory=uuid4)
+    entity_id: UUID
+    target_id: UUID
+    similarity: float = Field(ge=0, le=1)
+    status: Literal["open", "merged", "kept_separate"] = "open"
+    reviewed_by: UUID | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

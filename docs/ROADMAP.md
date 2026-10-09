@@ -264,8 +264,8 @@ Phase 5 in the supplied roadmap is ongoing governance work, not milestones.
 
 ## 3. Entity resolution review
 
-- [ ] Similar-but-uncertain entity pairs are queued as merge candidates.
-- [ ] Human reviewers merge or keep them separate; merges keep history.
+- [x] Similar-but-uncertain entity pairs are queued as merge candidates.
+- [x] Human reviewers merge or keep them separate; merges keep history.
 
 ## 4. Observability
 

@@ -135,6 +135,13 @@ Extraction rules (`src/aether/extraction/`):
 - One transaction per text unit writes new entities, citations, relationships,
   and an `:Extraction {key: "<unit id>|<prompt version>/<model>"}` marker. Its
   unique constraint makes re-runs skip finished units.
+- Same-type pairs with cosine 0.85–0.95 become a new entity plus a
+  `MergeCandidate` (written just after the extraction commit). Humans with
+  `review` decide via `POST /merge-candidates/{id}/review`: `merge` moves
+  relationships, claim subjects/objects, and citations from the newer entity
+  to the older, adds its names as aliases, deprecates any self-loop, and keeps
+  the source as `merged` with `merged_into_id`; `keep_separate` closes it.
+  A merged entity's neighborhood shows its target's.
 - Units are processed sequentially; concurrent runs may duplicate entities.
 - Entity vectors are upserted to LanceDB after commit, unit-normalized.
 - `POST /documents/{id}/extraction` queues the document on a single worker

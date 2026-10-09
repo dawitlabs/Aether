@@ -24,6 +24,7 @@ from aether.api.claims import router as claims_router
 from aether.api.contributors import router as contributors_router
 from aether.api.graph import log_failure
 from aether.api.limits import RateLimiter
+from aether.api.merges import router as merges_router
 from aether.api.graph import router as graph_router
 from aether.core.models import Document, TextUnit
 from aether.extraction.jobs import extract_document
@@ -33,6 +34,7 @@ from aether.extraction.pipeline import Extractor
 from aether.ingestion import UploadError, ingest
 from aether.storage.documents import Neo4jDocumentStore
 from aether.storage.knowledge import Neo4jKnowledgeStore
+from aether.storage.merges import Neo4jMergeStore
 from aether.storage.schema import SCHEMA_VERSION, ensure_schema
 from aether.storage.text_units import Neo4jTextUnitStore
 
@@ -103,6 +105,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             LLMClient(config.embed_base_url, config.embed_model, api_key=config.embed_api_key),
             Neo4jKnowledgeStore(driver, config.neo4j_database),
             config.index_dir,
+            merges=Neo4jMergeStore(driver, config.neo4j_database),
         )
         # One worker: units are extracted strictly one at a time (see pipeline.py).
         app.state.worker = ThreadPoolExecutor(max_workers=1)
@@ -253,7 +256,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"version": VERSION, "api": "v0", "schema": SCHEMA_VERSION,
                 "extract_prompt": PROMPT_VERSION}
 
-    for router in (api, graph_router, contributors_router, claims_router):
+    for router in (api, graph_router, contributors_router, claims_router, merges_router):
         app.include_router(router, prefix=API_PREFIX)
     return app
 

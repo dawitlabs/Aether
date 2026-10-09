@@ -59,7 +59,9 @@ class Neo4jGraphReader:
 
     def neighborhood(self, entity_id: UUID, *, limit: int = 50) -> Neighborhood | None:
         rows = self._read(
-            "MATCH (e:Entity {id: $id}) "
+            # A merged entity shows the neighborhood of the entity it merged into.
+            "MATCH (x:Entity {id: $id}) "
+            "OPTIONAL MATCH (m:Entity {id: x.merged_into_id}) WITH coalesce(m, x) AS e "
             "OPTIONAL MATCH (e)<-[:FROM|TO]-(r:Relationship)-[:FROM|TO]->(o:Entity) "
             "WHERE o <> e "
             "WITH e, r, o ORDER BY r.weight DESC LIMIT $limit "
