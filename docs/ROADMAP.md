@@ -199,3 +199,40 @@ dashes and curly quotes.
 These scores are saturated on a tiny, easy corpus. They prove the harness,
 not answer quality; a larger corpus with harder questions is needed before
 scores can guide changes.
+
+# Phase 3 — Claims & Contribution
+
+Goal: humans and agents propose evidence-backed claims; humans review them;
+verified claims inform answers. Policy: [ADR-0002](adr/0002-contribution-policy.md).
+
+## 1. Identity
+
+- [ ] Contributor records with hashed API keys and permissions.
+- [ ] A local script creates the first admin; admins create contributors.
+- [ ] Every write endpoint requires a valid key; reads stay open.
+
+## 2. Proposals
+
+- [ ] `POST /claims` with mandatory, verbatim-checked evidence.
+- [ ] Claims record their author and start as `proposed`.
+
+## 3. Review
+
+- [ ] `POST /claims/{id}/review` accepts or rejects, recorded as a Review.
+- [ ] Only humans with `review`, never the author.
+
+## 4. Disputes
+
+- [ ] `POST /claims/{id}/dispute` with counter-evidence reopens review.
+
+## 5. Reputation
+
+- [ ] Accepted and rejected claim counts per contributor.
+
+## 6. Query integration
+
+- [ ] Verified claims about matched entities join the query context; answers
+  return `claim_ids`.
+
+Exit: an agent proposes a claim with evidence, a human accepts it, and a query
+uses it.
