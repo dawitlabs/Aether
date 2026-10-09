@@ -244,3 +244,42 @@ human reviewer accepted it (`verified`, `supported`); a local query answered
 from it, returned its ID in `claim_ids`, and cited one passage; the agent's
 profile showed one accepted claim. The check's contributors and claim were
 deleted afterwards.
+
+# Phase 4 — Agent readiness & hardening
+
+Goal: an external agent can be registered, propose, and query reliably.
+Phase 5 in the supplied roadmap is ongoing governance work, not milestones.
+
+## 1. Stable API contract
+
+- [ ] All routes under `/api/v0`; `/health` and `/ready` stay at the root for probes.
+- [ ] `GET /api/v0/version`; errors use `{"error": ..., "detail": ...}`.
+- [ ] A committed OpenAPI snapshot fails tests on unplanned contract changes.
+
+## 2. Rate limiting & auth hardening
+
+- [ ] Per-contributor (or per-IP without a key) limits; stricter on `/query`.
+- [ ] 429 responses carry `Retry-After`.
+- [ ] Contributors rotate their own key; admins revoke keys over the API.
+
+## 3. Entity resolution review
+
+- [ ] Similar-but-uncertain entity pairs are queued as merge candidates.
+- [ ] Human reviewers merge or keep them separate; merges keep history.
+
+## 4. Observability
+
+- [ ] Structured JSON logs with request IDs and timing; no PII or keys.
+- [ ] `GET /api/v0/admin/stats` for graph counts and request metrics.
+
+## 5. Agent integrator docs
+
+- [ ] `docs/AGENTS.md` and a tested, dependency-free example client.
+
+## 6. First domain pack
+
+- [ ] A domain pack format (corpus, golden questions, sources).
+- [ ] A first pack, the evaluation run against it, and an in-process demo.
+
+Exit: an agent registered by an admin proposes a claim, a human accepts it,
+and the agent queries it, all through `/api/v0`; the domain pack evaluates.
