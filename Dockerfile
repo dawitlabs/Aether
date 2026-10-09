@@ -3,8 +3,9 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY pyproject.toml ./
 COPY src ./src
-# Editable so domain packs and scripts resolve from /app like a checkout.
-RUN pip install --no-cache-dir -e . \
+# Editable so domain packs and scripts resolve from /app like a checkout;
+# dev adds the HTTP test client scripts/demo.py drives the API with.
+RUN pip install --no-cache-dir -e ".[dev]" \
     && useradd --system --home /data aether \
     && install -d -o aether /data
 COPY scripts ./scripts
