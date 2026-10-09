@@ -29,10 +29,24 @@ def current_contributor(
     return contributor
 
 
+def writer(
+    request: Request, contributor: Annotated[Contributor, Depends(current_contributor)]
+) -> Contributor:
+    """An authenticated contributor within their write rate limit."""
+    state = request.app.state
+    state.limiter.check(f"write:{contributor.id}", state.config.write_limit_per_minute)
+    return contributor
+
+
+def optional_contributor(
+    request: Request, authorization: Annotated[str | None, Header()] = None
+) -> Contributor | None:
+    """None without a key; an invalid key is still rejected, never downgraded."""
+    return current_contributor(request, authorization) if authorization else None
+
+
 def require(permission: Permission) -> Callable[[Contributor], Contributor]:
-    def check(
-        contributor: Annotated[Contributor, Depends(current_contributor)],
-    ) -> Contributor:
+    def check(contributor: Annotated[Contributor, Depends(writer)]) -> Contributor:
         if permission not in contributor.permissions:
             raise HTTPException(403, f"Requires the {permission} permission")
         return contributor

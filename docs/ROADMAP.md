@@ -258,9 +258,9 @@ Phase 5 in the supplied roadmap is ongoing governance work, not milestones.
 
 ## 2. Rate limiting & auth hardening
 
-- [ ] Per-contributor (or per-IP without a key) limits; stricter on `/query`.
-- [ ] 429 responses carry `Retry-After`.
-- [ ] Contributors rotate their own key; admins revoke keys over the API.
+- [x] Per-contributor (or per-IP without a key) limits; stricter on `/query`.
+- [x] 429 responses carry `Retry-After`.
+- [x] Contributors rotate their own key; admins revoke keys over the API.
 
 ## 3. Entity resolution review
 

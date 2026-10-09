@@ -16,6 +16,10 @@ from aether.core.models import Contributor
 KEY_PREFIX = "ae_"
 
 
+def new_key() -> str:
+    return KEY_PREFIX + secrets.token_urlsafe(32)
+
+
 def hash_key(key: str) -> str:
     return sha256(key.encode()).hexdigest()
 
@@ -27,7 +31,7 @@ class Neo4jContributorStore:
 
     def create(self, contributor: Contributor) -> str:
         """Store the contributor and return its new API key."""
-        key = KEY_PREFIX + secrets.token_urlsafe(32)
+        key = new_key()
         self._driver.execute_query(
             "CREATE (c:Contributor) SET c = $props",
             parameters_={"props": {
@@ -58,3 +62,13 @@ class Neo4jContributorStore:
             parameters_={"id": str(contributor_id)}, database_=self._database,
         )
         return records[0]["n"] == 1
+
+    def rotate_key(self, contributor_id: UUID) -> str | None:
+        """Replace the key; the old one stops working. None if no such contributor."""
+        key = new_key()
+        records, _, _ = self._driver.execute_query(
+            "MATCH (c:Contributor {id: $id}) SET c.key_hash = $hash RETURN count(c) AS n",
+            parameters_={"id": str(contributor_id), "hash": hash_key(key)},
+            database_=self._database,
+        )
+        return key if records[0]["n"] == 1 else None

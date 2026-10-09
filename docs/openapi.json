@@ -901,6 +901,20 @@
         "title": "NewContributor",
         "type": "object"
       },
+      "NewKey": {
+        "properties": {
+          "api_key": {
+            "description": "Shown only once; the previous key stops working.",
+            "title": "Api Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_key"
+        ],
+        "title": "NewKey",
+        "type": "object"
+      },
       "ProvenanceRef": {
         "properties": {
           "excerpt": {
@@ -1844,6 +1858,59 @@
         "summary": "Me"
       }
     },
+    "/api/v0/contributors/me/key": {
+      "post": {
+        "description": "Replace your own API key, e.g. after a leak.",
+        "operationId": "rotate_key_api_v0_contributors_me_key_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewKey"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          }
+        },
+        "summary": "Rotate Key"
+      }
+    },
     "/api/v0/contributors/{contributor_id}": {
       "get": {
         "description": "Identity plus reputation: counts of this contributor's accepted and rejected claims.",
@@ -1886,6 +1953,65 @@
           }
         },
         "summary": "Profile"
+      }
+    },
+    "/api/v0/contributors/{contributor_id}/revoke": {
+      "post": {
+        "description": "Disable a contributor's key; their past work stays attributed.",
+        "operationId": "revoke_key_api_v0_contributors__contributor_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "contributor_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Contributor Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Key"
       }
     },
     "/api/v0/documents": {
@@ -2296,6 +2422,24 @@
       "post": {
         "description": "Answer with verified quotes. Modes: local (entities and their verified\nclaims), global (community reports), or hybrid (both).",
         "operationId": "query_api_v0_query_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2326,6 +2470,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "Too Many Requests"
           },
           "502": {
             "description": "Model provider unavailable"

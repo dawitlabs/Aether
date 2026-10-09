@@ -8,9 +8,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
-from aether.api.auth import require
+from aether.api.auth import optional_contributor, require
 from aether.communities.reports import rebuild_with_reports
-from aether.core.models import Community, Entity, Relationship, TextUnit
+from aether.core.models import Community, Contributor, Entity, Relationship, TextUnit
 from aether.query import Answer, Mode, answer_question
 from aether.storage.claims import Neo4jClaimStore
 from aether.storage.communities import Neo4jCommunityStore
@@ -72,11 +72,22 @@ def get_neighborhood(request: Request, entity_id: UUID) -> NeighborhoodOut:
     )
 
 
-@router.post("/query", responses={502: {"description": "Model provider unavailable"}})
-def query(request: Request, body: Question) -> Answer:
+def client_host(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
+@router.post("/query", responses={429: {}, 502: {"description": "Model provider unavailable"}})
+def query(
+    request: Request, body: Question,
+    contributor: Annotated[Contributor | None, Depends(optional_contributor)],
+) -> Answer:
     """Answer with verified quotes. Modes: local (entities and their verified
     claims), global (community reports), or hybrid (both)."""
-    extractor = request.app.state.extractor
+    # Each query spends LLM quota, so it has its own, stricter limit.
+    who = f"contributor:{contributor.id}" if contributor else f"ip:{client_host(request)}"
+    state = request.app.state
+    state.limiter.check(f"query:{who}", state.config.query_limit_per_minute)
+    extractor = state.extractor
     return answer_question(
         body.question,
         body.mode,

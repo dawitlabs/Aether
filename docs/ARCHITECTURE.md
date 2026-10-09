@@ -194,6 +194,13 @@ Identity rules (`api/auth.py`, `storage/contributors.py`, ADR-0002):
   spends LLM quota.
 - Missing or unknown keys get 401; a missing permission gets 403; a database
   outage during the check gets 503, never access.
+- Writes are limited per contributor (`WRITE_LIMIT_PER_MINUTE`, default 60);
+  `POST /query` per contributor, or per client IP without a key
+  (`QUERY_LIMIT_PER_MINUTE`, default 10). An invalid key on `/query` is 401,
+  never a silent downgrade. Over the limit: 429 with `Retry-After`. Counters
+  are in-process, so each worker enforces its own window.
+- `POST /contributors/me/key` rotates your key; `POST /contributors/{id}/revoke`
+  (admin) disables one.
 - `python scripts/contributor.py create-admin "Name"` makes the first admin;
   `revoke <id>` clears a key's hash and keeps the contributor for attribution.
 

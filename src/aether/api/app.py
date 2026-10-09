@@ -23,6 +23,7 @@ from aether.api.auth import require
 from aether.api.claims import router as claims_router
 from aether.api.contributors import router as contributors_router
 from aether.api.graph import log_failure
+from aether.api.limits import RateLimiter
 from aether.api.graph import router as graph_router
 from aether.core.models import Document, TextUnit
 from aether.extraction.jobs import extract_document
@@ -64,6 +65,8 @@ class Settings(BaseModel):
     embed_base_url: str = "http://127.0.0.1:11434/v1"
     embed_model: str = "all-minilm"
     embed_api_key: str | None = Field(default=None, repr=False)
+    write_limit_per_minute: int = Field(default=60, ge=1)
+    query_limit_per_minute: int = Field(default=10, ge=1)
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -121,6 +124,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="Aether", version=VERSION, lifespan=lifespan)
     app.state.config = config
+    app.state.limiter = RateLimiter()
     errors.install(app)
     api = APIRouter()
 

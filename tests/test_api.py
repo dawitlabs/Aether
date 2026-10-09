@@ -51,7 +51,7 @@ def test_settings_read_environment(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     for key, value in UNREACHABLE.model_dump(mode="json").items():
         if value is not None:
-            monkeypatch.setenv(key.upper(), value)
+            monkeypatch.setenv(key.upper(), str(value))
     assert Settings.from_env() == UNREACHABLE
 
 
