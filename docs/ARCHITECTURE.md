@@ -190,6 +190,27 @@ Identity rules (`api/auth.py`, `storage/contributors.py`, ADR-0002):
 - `python scripts/contributor.py create-admin "Name"` makes the first admin;
   `revoke <id>` clears a key's hash and keeps the contributor for attribution.
 
+Claim rules (`api/claims.py`, `storage/claims.py`, ADR-0002):
+
+- `POST /claims` needs `propose` and 1–20 evidence excerpts, each at least 3
+  characters after normalization and found in its text unit via `name_key`. Subject and object entities must exist. Claims
+  start `proposed` and link to their author with `PROPOSED_BY`.
+- `POST /claims/{id}/review` needs a human with `review` who is not the author,
+  on a `proposed` or `under_review` claim. Accept sets `verified` (polarity
+  `mixed` if counter-evidence exists, else `supported`); reject sets `rejected`.
+- `POST /claims/{id}/dispute` needs `propose` and counter-evidence; it reopens
+  the claim as `under_review` / `disputed` and clears its verification.
+- Every decision is a `Review` node (`REVIEWS` claim, `BY` contributor). Each
+  decision first writes `changed_at` to take the claim's lock, so concurrent
+  decisions serialize.
+- `GET /contributors/{id}` counts accepted and rejected claims on read.
+- Local and hybrid queries add up to 10 verified claims about matched entities
+  as context; their evidence passages become citable. Answers list `claim_ids`.
+  Claim statements and report text are HTML-escaped in the prompt so they
+  cannot close their tags; passages stay raw for verbatim quote checks.
+  The store's `create_claim` still refuses verified claims: review is the only
+  path to `verified`.
+
 ## Local operation
 
 Neo4j runs separately from the Python application. Bind the development database

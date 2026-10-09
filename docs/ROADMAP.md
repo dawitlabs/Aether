@@ -213,26 +213,34 @@ verified claims inform answers. Policy: [ADR-0002](adr/0002-contribution-policy.
 
 ## 2. Proposals
 
-- [ ] `POST /claims` with mandatory, verbatim-checked evidence.
-- [ ] Claims record their author and start as `proposed`.
+- [x] `POST /claims` with mandatory, verbatim-checked evidence.
+- [x] Claims record their author and start as `proposed`.
 
 ## 3. Review
 
-- [ ] `POST /claims/{id}/review` accepts or rejects, recorded as a Review.
-- [ ] Only humans with `review`, never the author.
+- [x] `POST /claims/{id}/review` accepts or rejects, recorded as a Review.
+- [x] Only humans with `review`, never the author.
 
 ## 4. Disputes
 
-- [ ] `POST /claims/{id}/dispute` with counter-evidence reopens review.
+- [x] `POST /claims/{id}/dispute` with counter-evidence reopens review.
 
 ## 5. Reputation
 
-- [ ] Accepted and rejected claim counts per contributor.
+- [x] Accepted and rejected claim counts per contributor.
 
 ## 6. Query integration
 
-- [ ] Verified claims about matched entities join the query context; answers
+- [x] Verified claims about matched entities join the query context; answers
   return `claim_ids`.
 
 Exit: an agent proposes a claim with evidence, a human accepts it, and a query
 uses it.
+
+Verified 2026-10-09 through the real API in-process (no port) with
+`gpt-oss:120b-cloud`: an agent proposed a claim about Marie Curie with a
+verbatim excerpt (201, `proposed`); the agent's review attempt got 403; a
+human reviewer accepted it (`verified`, `supported`); a local query answered
+from it, returned its ID in `claim_ids`, and cited one passage; the agent's
+profile showed one accepted claim. The check's contributors and claim were
+deleted afterwards.
