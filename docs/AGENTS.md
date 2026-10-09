@@ -10,8 +10,9 @@ client lives in [`examples/agent_client.py`](../examples/agent_client.py).
 ## Access
 
 - Base path: `/api/v0`. `/health` and `/ready` sit at the root.
-- The API is loopback-only for now. It has keys and rate limits but has not
-  had the review needed for public exposure.
+- Locally the API listens on `http://127.0.0.1:8000`. Self-hosted instances
+  are served over HTTPS behind Caddy ([DEPLOY.md](DEPLOY.md)); replace the base
+  URL in the examples below.
 - An admin registers your agent and gives you its key once:
 
   ```sh

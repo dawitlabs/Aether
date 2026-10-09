@@ -8,15 +8,14 @@ precedence.
 
 ## Current implementation
 
-Implemented: Nix development shell, direnv setup, Python package, Pydantic domain
-models, model tests, and the [local Neo4j runtime](LOCAL_DATABASE.md). The runtime
-has passed authenticated connectivity and a database-restart durability check.
+Implemented: text ingestion, LLM extraction with entity resolution and merge
+review, Leiden communities with reports, local/global/hybrid cited query,
+claim contribution with human review, contributor keys and rate limits, the
+versioned HTTP API, evaluation over domain packs, and a self-hosting setup
+([DEPLOY.md](DEPLOY.md)). The rules below describe each part.
 
-Implemented storage: create/read for all four models; text-unit update and
-guarded delete. LanceDB embedding index (`storage/vectors.py`). Not implemented:
-entity/relationship/claim updates and deletes, non-text ingestion,
-extraction, retrieval, or contribution review workflows. Model validation does
-not prove that referenced records exist or authorize a claim's verification.
+Not implemented: non-text ingestion, entity/relationship updates and deletes
+outside merge review, and OpenTelemetry export.
 
 ## Foundation design
 
@@ -121,8 +120,8 @@ Ingestion rules (`src/aether/ingestion.py`):
 - The document and all of its text units are written in one transaction.
 - Database failures return 503 without details. The driver retries transient
   errors for at most 3 seconds per query.
-- Writes need an API key (see Identity rules). Without rate limiting or a
-  security review the API must still stay bound to loopback.
+- Writes need an API key (see Identity rules). Public instances sit behind
+  Caddy, which caps request bodies at 2 MB ([DEPLOY.md](DEPLOY.md)).
 
 Extraction rules (`src/aether/extraction/`):
 
@@ -156,8 +155,10 @@ Query rules (`src/aether/storage/graph.py`, `src/aether/query.py`):
   /entities/{id}/neighborhood` returns one hop plus every cited text unit.
   Responses never include embeddings.
 - `POST /query` takes `mode`. `local`: the 3 nearest entities' neighborhoods.
-  `global`: the 3 nearest community reports as background plus the text units
+  `global`: the 10 nearest community reports as background plus the text units
   their findings cite. `hybrid`: both, local units first. At most 8 units.
+- All context text is HTML-escaped so uploaded passages cannot close their
+  prompt tags; quotes are unescaped before verification.
 - Only text units are citable. Each citation is `{text_unit_id, document_id,
   quote}`; it is dropped unless the unit was supplied and the quote appears in
   it verbatim, ignoring case and whitespace. With no context the model is not
@@ -190,9 +191,9 @@ Evaluation and domain packs (`src/aether/evaluation.py`, `src/aether/domains.py`
   `radioactivity` (ten original summaries, MIT).
 - `python scripts/eval.py --domain <slug>` scores keyword recall (alternatives
   as `a|b`), citation precision over the pack's own documents, abstention, and
-  the share of citations into documents outside the pack. The graph is shared,
-  so other packs' documents can be cited; evaluate in a database holding only
-  that pack for clean numbers. Rows go to `.local/eval/<slug>-<timestamp>.jsonl`.
+  the share of citations into documents outside the pack. Each run starts a
+  throwaway Neo4j instance with its own documents and vector index, loads only
+  that pack, and deletes it afterwards. Rows go to `.local/eval/<slug>-<timestamp>.jsonl`.
 - `python scripts/demo.py` runs the agent workflow in-process against real
   models and removes its contributors and claim afterwards.
 - Text matching everywhere uses `core/text.py`'s `name_key`: NFKC, Unicode

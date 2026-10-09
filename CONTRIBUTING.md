@@ -1,6 +1,6 @@
 # Contributing to Aether
 
-Aether is in its foundation phase.
+Aether's foundation phases (0–4) are complete; see the [roadmap](docs/ROADMAP.md).
 
 Read the [current architecture](docs/ARCHITECTURE.md) and
 [foundation roadmap](docs/ROADMAP.md) before changing core components.
@@ -59,12 +59,14 @@ uvicorn --factory aether.api.app:create_app
 It reads the `NEO4J_*` settings from `.env`. Check `/health` (process up) and
 `/ready` (database reachable); OpenAPI docs are at `/docs`.
 
-Upload a text file and list its text units:
+Create an admin key once, then upload a text file and list its text units:
 
 ```bash
-curl -s -X POST 'http://127.0.0.1:8000/documents?filename=notes.txt' \
+python scripts/contributor.py create-admin "Your Name"   # prints the key once
+curl -s -X POST 'http://127.0.0.1:8000/api/v0/documents?filename=notes.txt' \
+  -H "Authorization: Bearer $ADMIN_KEY" \
   -H 'content-type: text/plain; charset=utf-8' --data-binary @notes.txt
-curl -s http://127.0.0.1:8000/documents/<id>/text-units
+curl -s http://127.0.0.1:8000/api/v0/documents/<id>/text-units
 ```
 
 ## Making changes
