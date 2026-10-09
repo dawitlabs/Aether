@@ -7,8 +7,9 @@ documents and vector index, loads only this pack, extracts it, builds its
 communities, asks every golden question, then stops and deletes the instance.
 The dev graph is never read or written. Scores go to
 .local/eval/<domain>-<timestamp>.jsonl. Needs the Nix shell (for the Neo4j
-binaries) and the configured LLM endpoints. Cached LLM responses make repeat
-runs fast and identical.
+binaries) and the configured LLM endpoints. Cached extraction responses make
+repeat runs fast, but answers can vary between runs: every instance assigns
+fresh IDs, so query prompts miss the cache.
 """
 
 import argparse
@@ -90,7 +91,10 @@ def run_pack(pack: Pack, domain: str, config: Settings) -> None:
     goldens = pack.goldens
 
     with GraphDatabase.driver(
-        config.neo4j_uri, auth=(config.neo4j_username, config.neo4j_password)
+        config.neo4j_uri, auth=(config.neo4j_username, config.neo4j_password),
+        # The graph starts empty, so queries name labels and properties that do
+        # not exist yet; the server's warnings about them are expected noise.
+        notifications_min_severity="OFF",
     ) as driver:
         db = config.neo4j_database
         ensure_schema(driver, db)
