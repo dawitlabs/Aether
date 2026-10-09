@@ -1,0 +1,11 @@
+{"question": "Where was Marie Curie born?", "mode": "local", "keywords": ["Warsaw"], "documents": ["curie.txt"]}
+{"question": "Who did Marie Curie meet at the University of Paris?", "mode": "local", "keywords": ["Pierre"], "documents": ["curie.txt"]}
+{"question": "Which elements did Marie and Pierre Curie discover?", "mode": "local", "keywords": ["polonium", "radium"], "documents": ["curie.txt", "nobel.txt"]}
+{"question": "Who founded the Radium Institute?", "mode": "local", "keywords": ["University of Paris", "Pasteur"], "documents": ["institute.txt"]}
+{"question": "When did Irène and Frédéric Joliot-Curie discover artificial radioactivity?", "mode": "local", "keywords": ["1934"], "documents": ["joliot.txt"]}
+{"question": "Who shared the 1903 Nobel Prize in Physics?", "mode": "hybrid", "keywords": ["Becquerel", "Pierre", "Marie"], "documents": ["nobel.txt"]}
+{"question": "How is Irène Joliot-Curie related to Marie Curie?", "mode": "hybrid", "keywords": ["daughter"], "documents": ["institute.txt"]}
+{"question": "What are the main themes across these documents?", "mode": "global", "keywords": ["radioactivity", "Nobel", "Radium Institute"], "documents": ["curie.txt", "nobel.txt", "institute.txt", "joliot.txt"]}
+{"question": "How did the Curie family's scientific work continue across generations?", "mode": "global", "keywords": ["Marie", "Irène", "radioactivity"], "documents": ["curie.txt", "nobel.txt", "institute.txt", "joliot.txt"]}
+{"question": "What is the capital of Japan?", "mode": "hybrid", "keywords": [], "documents": [], "answerable": false}
+{"question": "Who won the 2020 Nobel Prize in Physics?", "mode": "hybrid", "keywords": [], "documents": [], "answerable": false}

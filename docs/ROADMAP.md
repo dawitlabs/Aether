@@ -182,8 +182,20 @@ extensions). Single-level communities only until the graph needs hierarchy.
 
 ## 5. Evaluation harness
 
-- [ ] A committed corpus and golden questions (factual, thematic, unanswerable).
-- [ ] `scripts/eval.py` logs keyword recall, citation precision, and abstention.
+- [x] A committed corpus and golden questions (factual, thematic, unanswerable).
+- [x] `scripts/eval.py` logs keyword recall, citation precision, and abstention.
 
 Exit: ingest the corpus, rebuild communities, answer local and thematic
 questions with citations, and log evaluation scores.
+
+Verified 2026-10-09 with `gpt-oss:120b-cloud` and `all-minilm`: `python
+scripts/eval.py` ingested and extracted the four-document corpus, rebuilt four
+communities with reports, and scored 11 golden questions (5 local, 4 hybrid,
+2 global): keyword recall 1.0, citation precision 1.0, abstention accuracy
+1.0. The first run scored abstention 0.909: a correct citation was rejected
+because the model wrote U+2011 for a hyphen; `name_key` now folds Unicode
+dashes and curly quotes.
+
+These scores are saturated on a tiny, easy corpus. They prove the harness,
+not answer quality; a larger corpus with harder questions is needed before
+scores can guide changes.

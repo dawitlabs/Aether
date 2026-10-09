@@ -165,6 +165,16 @@ Community rules (`src/aether/communities/`, `storage/communities.py`):
 - Report summaries are embedded as `community` vectors, replacing all previous
   ones. Vector search filters by kind before applying its limit.
 
+Evaluation (`src/aether/evaluation.py`, `scripts/eval.py`, `eval/`):
+
+- `eval/corpus/` is a fixed document set; `eval/golden.jsonl` lists questions
+  with mode, expected keywords, expected source files, and `answerable`.
+- Scores: keyword recall in the answer, the share of citations from expected
+  documents, and abstention (no citations) matching `answerable`. Each run
+  writes a summary row and per-question rows to `.local/eval/<timestamp>.jsonl`.
+- Text matching everywhere uses `core/text.py`'s `name_key`: NFKC, Unicode
+  dashes to `-`, curly quotes to straight, whitespace collapsed, casefolded.
+
 ## Local operation
 
 Neo4j runs separately from the Python application. Bind the development database
