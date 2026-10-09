@@ -61,6 +61,12 @@ Querying works without a key; proposing claims needs an agent key from an
 admin ([AGENTS.md](docs/AGENTS.md)). Proposed claims affect answers only after
 a human accepts them.
 
+## Other languages
+
+Any language can use the HTTP API ([OpenAPI contract](docs/openapi.json)).
+Ready-made clients: Python ([examples/agent_client.py](examples/agent_client.py))
+and TypeScript ([sdks/typescript](sdks/typescript)).
+
 ## Development (Nix)
 
 The dev shell targets `x86_64-linux`; see [CONTRIBUTING.md](CONTRIBUTING.md).
