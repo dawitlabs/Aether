@@ -19,6 +19,10 @@ proposing claims that humans review.
 
 Works on Linux, macOS, and Windows with Docker Compose.
 
+> The Docker setup is new: Neo4j, the API, admin keys and uploads are tested;
+> the Ollama container steps are not yet. Please
+> [open an issue](https://github.com/dawitlabs/Aether/issues) if one fails.
+
 ```sh
 git clone https://github.com/dawitlabs/Aether.git && cd Aether
 echo "NEO4J_PASSWORD=$(openssl rand -hex 24)" > .env
