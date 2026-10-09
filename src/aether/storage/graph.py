@@ -74,15 +74,19 @@ class Neo4jGraphReader:
             for record in [entities[0], *relationships]
             for ref in record.provenance
         ))
-        units = {
-            row["data"]["id"]: load_text_unit(row["data"])
-            for row in self._read(
-                "MATCH (t:TextUnit) WHERE t.id IN $ids RETURN properties(t) AS data", ids=unit_ids
-            )
-        }
         return Neighborhood(
             entity=entities[0],
             neighbors=entities[1:],
             relationships=relationships,
-            text_units=[units[i] for i in unit_ids if i in units],
+            text_units=self.text_units(unit_ids),
         )
+
+    def text_units(self, ids: list[str]) -> list[TextUnit]:
+        """Units in the order of ids; unknown IDs are skipped."""
+        units = {
+            row["data"]["id"]: load_text_unit(row["data"])
+            for row in self._read(
+                "MATCH (t:TextUnit) WHERE t.id IN $ids RETURN properties(t) AS data", ids=ids
+            )
+        }
+        return [units[i] for i in ids if i in units]

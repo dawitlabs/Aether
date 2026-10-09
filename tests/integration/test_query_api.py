@@ -13,7 +13,8 @@ PLAIN = {"content-type": "text/plain; charset=utf-8"}
 
 
 class FakeChat:
-    """Extracts Bob WORKS_FOR Acme; answers by citing every passage plus a bogus ID."""
+    """Extracts Bob WORKS_FOR Acme; reports on any community; answers citing every
+    passage, plus an unknown ID, a fabricated quote, and junk."""
 
     model = "fake-chat"
 
@@ -21,10 +22,20 @@ class FakeChat:
         self.bob, self.acme = bob, acme
 
     def chat_json(self, system, user):
+        ids = re.findall(r'<passage id="([^"]+)">', user)
         if system.startswith("Answer"):
-            ids = re.findall(r'<passage id="([^"]+)">', user)
-            return {"answer": f"{self.bob} works for {self.acme}.",
-                    "citations": [*ids, str(uuid4()), {"bad": 1}]}
+            quote = f"works for {self.acme}"
+            return {"answer": f"{self.bob} works for {self.acme}.", "citations": [
+                *({"text_unit_id": i, "quote": quote.upper()} for i in ids),
+                {"text_unit_id": str(uuid4()), "quote": quote},
+                {"text_unit_id": ids[0], "quote": "founded Acme"},
+                ids[0],
+            ]}
+        if system.startswith("You summarize"):
+            match = re.search(r'<passage id="[^"]+">\n(.*?)\n</passage>', user, re.S)
+            first = match.group(1) if match else ""
+            return {"title": "Employment", "summary": f"About: {first}",
+                    "findings": [{"text": "Employment.", "text_unit_ids": ids[:1]}]}
         return {
             "entities": [
                 {"name": n, "type": t, "description": "", "excerpt": n, "confidence": 1}
@@ -106,8 +117,39 @@ def test_query_keeps_only_citations_that_were_supplied(graph):
     body = client.post("/query", json={"question": f"Who employs {bob}?"}).json()
 
     assert body["answer"] == f"{bob} works for {acme}."
-    assert body["citations"] == [hood_unit]
+    assert [(c["text_unit_id"], c["quote"]) for c in body["citations"]] == [
+        (hood_unit, f"WORKS FOR {acme.upper()}")
+    ]
+    assert body["citations"][0]["document_id"] == graph_document(client, hood_unit)
     assert len(body["entity_ids"]) >= 1
+    assert body["community_ids"] == []
+
+
+def graph_document(client, unit_id):
+    entity = client.get("/entities", params={"name": "bob"}).json()
+    for e in entity:
+        for unit in client.get(f"/entities/{e['id']}/neighborhood").json()["text_units"]:
+            if unit["id"] == unit_id:
+                return unit["source_document_id"]
+    raise AssertionError("unit not found")
+
+
+def test_global_mode_answers_from_community_reports(graph):
+    client, bob, acme = graph
+    client.post("/communities/rebuild")
+    for _ in range(200):
+        if client.get("/communities/rebuild").json()["status"] != "running":
+            break
+        time.sleep(0.05)
+    assert client.get("/communities/rebuild").json()["status"] == "complete"
+
+    # The dev database may hold other communities; only ours mentions Bob.
+    question = f"What themes involve {bob}?"
+    body = client.post("/query", json={"question": question, "mode": "global"}).json()
+
+    assert body["entity_ids"] == []
+    assert len(body["community_ids"]) >= 1
+    assert [c["quote"] for c in body["citations"]] == [f"WORKS FOR {acme.upper()}"]
 
 
 def test_query_without_matching_entities_skips_the_model(database, tmp_path):
@@ -117,4 +159,4 @@ def test_query_without_matching_entities_skips_the_model(database, tmp_path):
             FakeChat("x", "y"), NameEmbedder([]), None, tmp_path / "empty"
         )
         body = client.post("/query", json={"question": "Anything?"}).json()
-    assert body == {"answer": None, "citations": [], "entity_ids": []}
+    assert body == {"answer": None, "citations": [], "entity_ids": [], "community_ids": []}

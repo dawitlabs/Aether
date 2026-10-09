@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from aether.communities.reports import rebuild_with_reports
 from aether.core.models import Community, Entity, Relationship, TextUnit
-from aether.query import Answer, answer_question
+from aether.query import Answer, Mode, answer_question
 from aether.storage.communities import Neo4jCommunityStore
 from aether.storage.graph import Neo4jGraphReader
 
@@ -33,6 +33,7 @@ class RebuildStatus(BaseModel):
 
 class Question(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
+    mode: Mode = "local"
 
 
 def public(entity: Entity) -> Entity:
@@ -71,13 +72,16 @@ def get_neighborhood(request: Request, entity_id: UUID) -> NeighborhoodOut:
 
 @router.post("/query", responses={502: {"description": "Model provider unavailable"}})
 def query(request: Request, body: Question) -> Answer:
-    """Answer from the nearest entities' neighborhoods; citations are text-unit IDs."""
+    """Answer with verified quotes. Modes: local (entities), global (community
+    reports), or hybrid (both)."""
     extractor = request.app.state.extractor
     return answer_question(
         body.question,
+        body.mode,
         chat=extractor.chat,
         embedder=extractor.embedder,
         graph=reader(request),
+        communities=community_store(request),
         index_path=request.app.state.config.index_dir,
     )
 

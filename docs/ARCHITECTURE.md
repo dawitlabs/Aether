@@ -140,9 +140,15 @@ Query rules (`src/aether/storage/graph.py`, `src/aether/query.py`):
 - `GET /entities?name=` matches name keys by substring; `GET
   /entities/{id}/neighborhood` returns one hop plus every cited text unit.
   Responses never include embeddings.
-- `POST /query` embeds the question, takes the 3 nearest entities, and gives
-  the model at most 8 of their cited text units. Returned citations not in
-  that set are dropped. With no matching entities the model is not called.
+- `POST /query` takes `mode`. `local`: the 3 nearest entities' neighborhoods.
+  `global`: the 3 nearest community reports as background plus the text units
+  their findings cite. `hybrid`: both, local units first. At most 8 units.
+- Only text units are citable. Each citation is `{text_unit_id, document_id,
+  quote}`; it is dropped unless the unit was supplied and the quote appears in
+  it verbatim, ignoring case and whitespace. With no context the model is not
+  called.
+- Integration tests rebuild communities across the whole dev database; rerun
+  a real rebuild afterwards (cached reports make it cheap).
 - Provider failures return 502 without details.
 
 Community rules (`src/aether/communities/`, `storage/communities.py`):

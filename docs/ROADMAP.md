@@ -177,8 +177,8 @@ extensions). Single-level communities only until the graph needs hierarchy.
 
 ## 4. Query modes and citations
 
-- [ ] `POST /query` accepts `mode`: `local`, `global`, or `hybrid`.
-- [ ] Citations carry text unit, document, and a quote verified verbatim.
+- [x] `POST /query` accepts `mode`: `local`, `global`, or `hybrid`.
+- [x] Citations carry text unit, document, and a quote verified verbatim.
 
 ## 5. Evaluation harness
 
