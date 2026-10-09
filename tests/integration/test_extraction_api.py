@@ -9,6 +9,8 @@ from aether.extraction.llm import LLMError
 from aether.extraction.pipeline import Extractor
 from aether.storage.knowledge import Neo4jKnowledgeStore
 
+API = "http://testserver/api/v0"
+
 PLAIN = {"content-type": "text/plain; charset=utf-8"}
 
 
@@ -43,7 +45,7 @@ def client(database, tmp_path, auth):
         update={"documents_dir": tmp_path / "docs", "index_dir": tmp_path / "index"}
     )
     uploaded = []
-    with TestClient(create_app(settings), headers=auth) as test_client:
+    with TestClient(create_app(settings), base_url=API, headers=auth) as test_client:
         yield test_client, uploaded
     driver.execute_query(
         "MATCH (t:TextUnit) WHERE t.source_document_id IN $ids "

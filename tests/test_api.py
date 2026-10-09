@@ -5,6 +5,8 @@ from pydantic import ValidationError
 
 from aether.api.app import Settings, create_app
 
+API = "http://testserver/api/v0"
+
 SECRET = "not-a-real-password"
 # Nothing listens on port 1, so connections are refused immediately.
 UNREACHABLE = Settings(
@@ -16,15 +18,15 @@ UNREACHABLE = Settings(
 
 
 def test_health_does_not_need_the_database():
-    with TestClient(create_app(UNREACHABLE)) as client:
-        response = client.get("/health")
+    with TestClient(create_app(UNREACHABLE), base_url=API) as client:
+        response = client.get("http://testserver/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
 def test_ready_reports_unavailable_without_internal_details(caplog):
-    with TestClient(create_app(UNREACHABLE)) as client:
-        response = client.get("/ready")
+    with TestClient(create_app(UNREACHABLE), base_url=API) as client:
+        response = client.get("http://testserver/ready")
     assert response.status_code == 503
     assert response.json() == {"status": "unavailable"}
     assert "neo4j.schema_pending" in caplog.text
@@ -32,8 +34,8 @@ def test_ready_reports_unavailable_without_internal_details(caplog):
 
 
 def test_openapi_documents_both_endpoints():
-    with TestClient(create_app(UNREACHABLE)) as client:
-        paths = client.get("/openapi.json").json()["paths"]
+    with TestClient(create_app(UNREACHABLE), base_url=API) as client:
+        paths = client.get("http://testserver/openapi.json").json()["paths"]
     assert {"/health", "/ready"} <= paths.keys()
 
 

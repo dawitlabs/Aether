@@ -6,10 +6,12 @@ from fastapi.testclient import TestClient
 from aether.api.app import Settings, create_app
 from aether.storage.contributors import Neo4jContributorStore
 
+API = "http://testserver/api/v0"
+
 
 @pytest.fixture
 def client(database):
-    with TestClient(create_app(Settings.from_env())) as test_client:
+    with TestClient(create_app(Settings.from_env()), base_url=API) as test_client:
         yield test_client
 
 

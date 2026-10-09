@@ -6,6 +6,8 @@ from fastapi.testclient import TestClient
 
 from aether.api.app import Settings, create_app
 
+API = "http://testserver/api/v0"
+
 PLAIN = {"content-type": "text/plain; charset=utf-8"}
 
 
@@ -14,7 +16,7 @@ def client(database, tmp_path, auth):
     driver, name = database
     uploaded = []
     settings = Settings.from_env().model_copy(update={"documents_dir": tmp_path})
-    with TestClient(create_app(settings), headers=auth) as test_client:
+    with TestClient(create_app(settings), base_url=API, headers=auth) as test_client:
         yield test_client, uploaded, tmp_path
     driver.execute_query(
         "MATCH (n) WHERE (n:Document AND n.id IN $ids) "

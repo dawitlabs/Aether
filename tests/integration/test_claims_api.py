@@ -5,6 +5,8 @@ from fastapi.testclient import TestClient
 
 from aether.api.app import Settings, create_app
 
+API = "http://testserver/api/v0"
+
 PLAIN = {"content-type": "text/plain; charset=utf-8"}
 
 
@@ -24,7 +26,7 @@ def setup(database, make_contributor, tmp_path):
     }
     text = f"Marie Curie was born in Warsaw. Tag {uuid4()}."
     settings = Settings.from_env().model_copy(update={"documents_dir": tmp_path})
-    with TestClient(create_app(settings)) as client:
+    with TestClient(create_app(settings), base_url=API) as client:
         document = client.post("/documents", content=text, headers={
             **PLAIN, **bearer(people["alice"][1])}).json()
         unit = client.get(f"/documents/{document['id']}/text-units").json()[0]

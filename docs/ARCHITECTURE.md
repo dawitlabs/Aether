@@ -94,6 +94,13 @@ delete the index directory and re-upsert from the embeddings stored in Neo4j.
 The dev shell sets `LD_LIBRARY_PATH` to Nix's C++ runtime because the prebuilt
 numpy, pyarrow, and lancedb wheels need it.
 
+API contract: every route except `/health` and `/ready` lives under `/api/v0`;
+paths elsewhere in this document omit that prefix. `docs/openapi.json` is the
+committed contract: `tests/test_openapi.py` fails on any difference, and
+`python scripts/openapi.py` regenerates it after an intended change. Errors are
+`{"error": <code>, "detail": <message>}`; validation errors omit echoed input.
+`GET /api/v0/version` reports package, API, schema, and prompt versions.
+
 API rules: `/health` reports process liveness and never touches the database.
 `/ready` runs one authenticated query without retries and returns 503 when
 Neo4j is unreachable, without exposing error details. The driver opens at

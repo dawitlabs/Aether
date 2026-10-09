@@ -1,6 +1,7 @@
 """HTTP API. Run from the project root: uvicorn --factory aether.api.app:create_app"""
 
 import logging
+from importlib import metadata
 import os
 from collections.abc import AsyncIterator
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -10,13 +11,14 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from dotenv import dotenv_values
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
 from neo4j import Driver, GraphDatabase
 from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import BaseModel, ConfigDict, Field
 
+from aether.api import errors
 from aether.api.auth import require
 from aether.api.claims import router as claims_router
 from aether.api.contributors import router as contributors_router
@@ -24,15 +26,18 @@ from aether.api.graph import log_failure
 from aether.api.graph import router as graph_router
 from aether.core.models import Document, TextUnit
 from aether.extraction.jobs import extract_document
-from aether.extraction.llm import LLMClient, LLMError
+from aether.extraction.extract import PROMPT_VERSION
+from aether.extraction.llm import LLMClient
 from aether.extraction.pipeline import Extractor
 from aether.ingestion import UploadError, ingest
 from aether.storage.documents import Neo4jDocumentStore
 from aether.storage.knowledge import Neo4jKnowledgeStore
-from aether.storage.schema import ensure_schema
+from aether.storage.schema import SCHEMA_VERSION, ensure_schema
 from aether.storage.text_units import Neo4jTextUnitStore
 
 log = logging.getLogger("aether.api")
+API_PREFIX = "/api/v0"
+VERSION = metadata.version("aether")
 MAX_UPLOAD_BYTES = 1_048_576
 UNAVAILABLE = {"description": "Database unavailable"}
 
@@ -114,22 +119,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return False
         return True
 
-    app = FastAPI(title="Aether", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Aether", version=VERSION, lifespan=lifespan)
     app.state.config = config
-    app.include_router(graph_router)
-    app.include_router(contributors_router)
-    app.include_router(claims_router)
-
-    @app.exception_handler(DriverError)
-    @app.exception_handler(Neo4jError)
-    async def database_unavailable(request: Request, error: Exception) -> JSONResponse:
-        log.warning("neo4j.request_failed error=%s", type(error).__name__)
-        return JSONResponse({"detail": "Database unavailable"}, status_code=503)
-
-    @app.exception_handler(LLMError)
-    async def provider_unavailable(request: Request, error: LLMError) -> JSONResponse:
-        log.warning("llm.request_failed error=%s", error)
-        return JSONResponse({"detail": "Model provider unavailable"}, status_code=502)
+    errors.install(app)
+    api = APIRouter()
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -152,7 +145,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return JSONResponse({"status": "unavailable"}, status_code=503)
         return JSONResponse({"status": "ready"})
 
-    @app.post(
+    @api.post(
         "/documents",
         status_code=201,
         responses={200: {"description": "Same bytes already uploaded"}, 503: UNAVAILABLE},
@@ -187,7 +180,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         response.status_code = 201 if created else 200
         return document
 
-    @app.get("/documents/{document_id}", responses={404: {}, 503: UNAVAILABLE})
+    @api.get("/documents/{document_id}", responses={404: {}, 503: UNAVAILABLE})
     def get_document(request: Request, document_id: UUID) -> Document:
         store = Neo4jDocumentStore(request.app.state.driver, config.neo4j_database)
         document = store.get(document_id)
@@ -195,7 +188,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(404, "Document not found")
         return document
 
-    @app.get("/documents/{document_id}/text-units", responses={404: {}, 503: UNAVAILABLE})
+    @api.get("/documents/{document_id}/text-units", responses={404: {}, 503: UNAVAILABLE})
     def list_text_units(
         request: Request,
         document_id: UUID,
@@ -228,7 +221,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if store.get(document_id) is None:
             raise HTTPException(404, "Document not found")
 
-    @app.post(
+    @api.post(
         "/documents/{document_id}/extraction",
         status_code=202,
         responses={404: {}, 503: UNAVAILABLE},
@@ -246,10 +239,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             state.jobs[document_id] = job
         return extraction_status(request, document_id)
 
-    @app.get("/documents/{document_id}/extraction", responses={404: {}, 503: UNAVAILABLE})
+    @api.get("/documents/{document_id}/extraction", responses={404: {}, 503: UNAVAILABLE})
     def get_extraction(request: Request, document_id: UUID) -> ExtractionStatus:
         require_document(request, document_id)
         return extraction_status(request, document_id)
 
+    @api.get("/version")
+    def version() -> dict[str, str | int]:
+        return {"version": VERSION, "api": "v0", "schema": SCHEMA_VERSION,
+                "extract_prompt": PROMPT_VERSION}
+
+    for router in (api, graph_router, contributors_router, claims_router):
+        app.include_router(router, prefix=API_PREFIX)
     return app
 

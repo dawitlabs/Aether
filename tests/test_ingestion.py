@@ -5,6 +5,8 @@ from aether.api.app import create_app
 from aether.ingestion import save_original, split_text
 from test_api import UNREACHABLE
 
+API = "http://testserver/api/v0"
+
 TEXT = "First paragraph here.\n\nSecond one is a bit longer.\nIt has two lines.\n\n   \n\nEnd"
 
 
@@ -38,19 +40,19 @@ def test_save_original_is_idempotent(tmp_path):
 
 @pytest.mark.parametrize("body", [b"hello", b"x" * (1_048_576 + 1)])
 def test_upload_without_key_is_401_before_the_body_is_checked(body):
-    with TestClient(create_app(UNREACHABLE)) as client:
+    with TestClient(create_app(UNREACHABLE), base_url=API) as client:
         response = client.post("/documents", content=body, headers={"content-type": "text/plain"})
     assert response.status_code == 401
 
 
 def test_key_check_fails_closed_without_database():
     headers = {"content-type": "text/plain", "Authorization": "Bearer ae_anything"}
-    with TestClient(create_app(UNREACHABLE)) as client:
+    with TestClient(create_app(UNREACHABLE), base_url=API) as client:
         response = client.post("/documents", content=b"hello", headers=headers)
     assert response.status_code == 503
     assert "Traceback" not in response.text
 
 
 def test_invalid_document_id_is_rejected():
-    with TestClient(create_app(UNREACHABLE)) as client:
+    with TestClient(create_app(UNREACHABLE), base_url=API) as client:
         assert client.get("/documents/not-a-uuid").status_code == 422

@@ -252,9 +252,9 @@ Phase 5 in the supplied roadmap is ongoing governance work, not milestones.
 
 ## 1. Stable API contract
 
-- [ ] All routes under `/api/v0`; `/health` and `/ready` stay at the root for probes.
-- [ ] `GET /api/v0/version`; errors use `{"error": ..., "detail": ...}`.
-- [ ] A committed OpenAPI snapshot fails tests on unplanned contract changes.
+- [x] All routes under `/api/v0`; `/health` and `/ready` stay at the root for probes.
+- [x] `GET /api/v0/version`; errors use `{"error": ..., "detail": ...}`.
+- [x] A committed OpenAPI snapshot fails tests on unplanned contract changes.
 
 ## 2. Rate limiting & auth hardening
 

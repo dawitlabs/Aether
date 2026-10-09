@@ -11,6 +11,8 @@ from aether.core.models import Entity, ProvenanceRef, Relationship, TextUnit
 from aether.extraction.pipeline import Extractor
 from aether.storage.vectors import LanceVectorIndex
 
+API = "http://testserver/api/v0"
+
 
 class ReportChat:
     """Cites the first supplied passage and one invented ID."""
@@ -60,7 +62,7 @@ def clusters(knowledge, store, document_ids):
 
 def test_rebuild_groups_clusters_and_writes_grounded_reports(clusters, database, tmp_path, auth):
     settings = Settings.from_env().model_copy(update={"index_dir": tmp_path})
-    with TestClient(create_app(settings), headers=auth) as client:
+    with TestClient(create_app(settings), base_url=API, headers=auth) as client:
         client.app.state.extractor = Extractor(ReportChat(), FixedEmbedder(), None, tmp_path)
         assert client.get("/communities/rebuild").json() == {"status": "not_started"}
         assert client.post("/communities/rebuild").status_code == 202

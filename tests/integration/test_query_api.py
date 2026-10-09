@@ -9,6 +9,8 @@ from aether.api.app import Settings, create_app
 from aether.extraction.pipeline import Extractor
 from aether.storage.knowledge import Neo4jKnowledgeStore
 
+API = "http://testserver/api/v0"
+
 PLAIN = {"content-type": "text/plain; charset=utf-8"}
 
 
@@ -69,7 +71,7 @@ def graph(database, tmp_path, auth):
     settings = Settings.from_env().model_copy(
         update={"documents_dir": tmp_path / "docs", "index_dir": tmp_path / "index"}
     )
-    with TestClient(create_app(settings), headers=auth) as client:
+    with TestClient(create_app(settings), base_url=API, headers=auth) as client:
         client.app.state.extractor = Extractor(
             FakeChat(bob, acme), NameEmbedder([bob, acme]),
             Neo4jKnowledgeStore(driver, name), tmp_path / "index",
@@ -155,7 +157,7 @@ def test_global_mode_answers_from_community_reports(graph):
 
 def test_query_without_matching_entities_skips_the_model(database, tmp_path):
     settings = Settings.from_env().model_copy(update={"index_dir": tmp_path / "empty"})
-    with TestClient(create_app(settings)) as client:
+    with TestClient(create_app(settings), base_url=API) as client:
         client.app.state.extractor = Extractor(
             FakeChat("x", "y"), NameEmbedder([]), None, tmp_path / "empty"
         )
