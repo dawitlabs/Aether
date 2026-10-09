@@ -2,22 +2,31 @@
 
     python scripts/eval.py [--domain curie-sample]
 
-Ingests the pack's corpus (idempotent), extracts it, rebuilds all communities,
-asks every golden question, and writes scores to
-.local/eval/<domain>-<timestamp>.jsonl. Needs Neo4j and the configured LLM
-endpoints. Cached LLM responses make repeat runs fast and identical.
+Starts a throwaway Neo4j instance on a free loopback port with its own
+documents and vector index, loads only this pack, extracts it, builds its
+communities, asks every golden question, then stops and deletes the instance.
+The dev graph is never read or written. Scores go to
+.local/eval/<domain>-<timestamp>.jsonl. Needs the Nix shell (for the Neo4j
+binaries) and the configured LLM endpoints. Cached LLM responses make repeat
+runs fast and identical.
 """
 
 import argparse
 import json
+import secrets
+import socket
+import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
+import local_neo4j
 from neo4j import GraphDatabase
 
 from aether.api.app import Settings
 from aether.communities.reports import rebuild_with_reports
-from aether.domains import available, load_pack
+from aether.domains import Pack, available, load_pack
 from aether.evaluation import score, summarize
 from aether.extraction.extract import PROMPT_VERSION
 from aether.extraction.jobs import extract_document
@@ -37,9 +46,43 @@ from aether.storage.text_units import Neo4jTextUnitStore
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@contextmanager
+def throwaway_settings(base: Settings, domain: str) -> Iterator[Settings]:
+    """Yields `base` pointed at a fresh Neo4j instance and empty stores; deletes them after."""
+    (ROOT / ".local/eval").mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=f"{domain}-", dir=ROOT / ".local/eval") as tmp:
+        home = Path(tmp) / "neo4j"
+        # ponytail: probe-then-bind race on the port; a clash just fails the start.
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            port = probe.getsockname()[1]
+        local_neo4j.prepare_home(home, port, None)
+        password = secrets.token_urlsafe(32)
+        local_neo4j.command("neo4j-admin", "dbms", "set-initial-password", password,
+                            private=True, home=home)
+        config = base.model_copy(update={
+            "neo4j_uri": f"bolt://127.0.0.1:{port}", "neo4j_username": "neo4j",
+            "neo4j_password": password, "neo4j_database": "neo4j",
+            "documents_dir": Path(tmp) / "documents", "index_dir": Path(tmp) / "lancedb",
+        })
+        local_neo4j.command("neo4j", "start", private=True, home=home)
+        try:
+            local_neo4j.check(wait=True, config={
+                "NEO4J_URI": config.neo4j_uri, "NEO4J_USERNAME": "neo4j",
+                "NEO4J_PASSWORD": password, "NEO4J_DATABASE": "neo4j",
+            })
+            yield config
+        finally:
+            local_neo4j.command("neo4j", "stop", private=True, home=home)
+
+
 def main(domain: str) -> None:
     pack = load_pack(domain)
-    config = Settings.from_env()
+    with throwaway_settings(Settings.from_env(), domain) as config:
+        run_pack(pack, domain, config)
+
+
+def run_pack(pack: Pack, domain: str, config: Settings) -> None:
     chat = LLMClient(config.llm_base_url, config.llm_model,
                      api_key=config.llm_api_key, cache_dir=config.llm_cache_dir)
     embedder = LLMClient(config.embed_base_url, config.embed_model,

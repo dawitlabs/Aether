@@ -311,3 +311,11 @@ so the golden questions still apply. The evaluation figures above were
 measured on the Wikipedia text; rerun `python scripts/eval.py --domain
 radioactivity` for current numbers.
 
+
+Update 2026-10-09: evaluation is isolated. `scripts/eval.py` now runs each pack
+in a throwaway Neo4j instance (free loopback port, own documents and vector
+index) that is deleted afterwards, so packs no longer cite each other and the
+dev graph is untouched. Isolated results on the MIT text: `radioactivity`
+keyword recall 0.95, citation precision 1.0, abstention 1.0, foreign-citation
+share 0.0; `curie-sample` 1.0 / 1.0 / 1.0 / 0.0. The "main themes" question
+now cites in-pack sources but recalls half its keywords.

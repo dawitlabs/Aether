@@ -30,11 +30,11 @@ def settings():
     return values
 
 
-def command(tool, *args, private=False):
+def command(tool, *args, private=False, home=LOCAL):
     executable = shutil.which(tool)
     if executable is None:
         raise RuntimeError("Neo4j tools are missing. Enter nix develop first.")
-    env = {**os.environ, "NEO4J_HOME": str(LOCAL), "NEO4J_CONF": str(LOCAL / "conf")}
+    env = {**os.environ, "NEO4J_HOME": str(home), "NEO4J_CONF": str(home / "conf")}
     result = subprocess.run(
         [executable, *args], env=env, capture_output=private, text=True
     )
@@ -43,39 +43,38 @@ def command(tool, *args, private=False):
         raise RuntimeError(f"{tool} failed (exit {result.returncode}); inspect local logs.")
 
 
-def initialize():
+def prepare_home(home, bolt_port, http_port):
+    """Lay out a Neo4j home with loopback-only listeners; http_port None disables HTTP."""
     distribution = os.environ.get("AETHER_NEO4J_DIST")
     if not distribution:
         raise RuntimeError("Enter the updated Nix shell before initialization.")
-    if (LOCAL / ".initialized").exists():
-        print("Already initialized; existing data and credentials preserved.")
-        return
-    if (LOCAL / "data" / "databases").exists():
-        raise RuntimeError("Existing database found; refusing to reinitialize credentials.")
-    LOCAL.mkdir(parents=True, exist_ok=True, mode=0o700)
+    home.mkdir(parents=True, exist_ok=True, mode=0o700)
     for name in ("conf", "data", "logs", "run", "plugins", "import"):
-        (LOCAL / name).mkdir(exist_ok=True)
-    lib = LOCAL / "lib"
+        (home / name).mkdir(exist_ok=True)
+    lib = home / "lib"
     if not lib.exists():
         lib.symlink_to(Path(distribution) / "lib", target_is_directory=True)
     for name in ("server-logs.xml", "user-logs.xml"):
         source = Path(distribution) / "conf" / name
         if source.exists():
-            shutil.copyfile(source, LOCAL / "conf" / name)
+            shutil.copyfile(source, home / "conf" / name)
     # Keep the JVM options recommended by this exact pinned server release.
     packaged_config = (Path(distribution) / "conf" / "neo4j.conf").read_text()
     jvm_options = "\n".join(
         line for line in packaged_config.splitlines()
         if line.startswith("server.jvm.additional=")
     )
-    (LOCAL / "conf" / "neo4j.conf").write_text(
+    http = (
+        f"server.http.enabled=true\nserver.http.listen_address=127.0.0.1:{http_port}\n"
+        if http_port else "server.http.enabled=false\n"
+    )
+    (home / "conf" / "neo4j.conf").write_text(
         "server.default_listen_address=127.0.0.1\n"
         "server.default_advertised_address=127.0.0.1\n"
         "server.directories.import=import\n"
         "server.bolt.enabled=true\n"
-        "server.bolt.listen_address=127.0.0.1:7687\n"
-        "server.http.enabled=true\n"
-        "server.http.listen_address=127.0.0.1:7474\n"
+        f"server.bolt.listen_address=127.0.0.1:{bolt_port}\n"
+        + http +
         "server.https.enabled=false\n"
         "dbms.security.auth_enabled=true\n"
         "dbms.usage_report.enabled=false\n"
@@ -86,6 +85,15 @@ def initialize():
         "server.memory.pagecache.size=256m\n"
         + jvm_options + "\n"
     )
+
+
+def initialize():
+    if (LOCAL / ".initialized").exists():
+        print("Already initialized; existing data and credentials preserved.")
+        return
+    if (LOCAL / "data" / "databases").exists():
+        raise RuntimeError("Existing database found; refusing to reinitialize credentials.")
+    prepare_home(LOCAL, 7687, 7474)
     if not ENV_FILE.exists():
         descriptor = os.open(ENV_FILE, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(descriptor, "w") as stream:
@@ -103,8 +111,8 @@ def initialize():
     print("Initialized local Neo4j. Credentials are in ignored .env.")
 
 
-def check(wait=False):
-    config = settings()
+def check(wait=False, config=None):
+    config = config or settings()
     deadline = time.monotonic() + (60 if wait else 0)
     with GraphDatabase.driver(
         config["NEO4J_URI"],
