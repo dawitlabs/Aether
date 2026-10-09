@@ -15,61 +15,54 @@ proposing claims that humans review.
   rate limits, and a committed OpenAPI contract.
 - **Any OpenAI-compatible model.** Defaults to Ollama; runs locally.
 
-## Quickstart (Docker)
+## Quickstart
 
-Works on Linux, macOS, and Windows with Docker Compose.
-
-> The Docker setup is new: Neo4j, the API, admin keys and uploads are tested;
-> the Ollama container steps are not yet. Please
-> [open an issue](https://github.com/dawitlabs/Aether/issues) if one fails.
+Needs git and Docker (Linux, macOS, or Windows with WSL2).
 
 ```sh
 git clone https://github.com/dawitlabs/Aether.git && cd Aether
-echo "NEO4J_PASSWORD=$(openssl rand -hex 24)" > .env
-docker compose up -d --build
-
-docker compose exec ollama ollama pull all-minilm   # embeddings
-docker compose exec ollama ollama signin            # chat model gpt-oss:120b-cloud
-docker compose exec api python /app/scripts/contributor.py create-admin "Your Name"
+./aether onboard
 ```
 
-The last command prints an admin key once. The API is at
-`http://127.0.0.1:8000` (docs at `/docs`). Try the whole agent workflow on the
-bundled `radioactivity` pack:
+`onboard` asks which chat model to use (Ollama's free cloud model or any
+OpenAI-compatible provider), starts Neo4j, Ollama, and the API, downloads the
+embedding model, walks you through the Ollama sign-in, and prints your admin
+key once. Then:
 
 ```sh
-docker compose exec api python /app/scripts/demo.py
+./aether demo    # the full agent workflow on the sample radioactivity pack
+./aether mcp     # the command that connects Claude Code or another MCP client
 ```
 
-To use another OpenAI-compatible provider, edit the `LLM_*`/`EMBED_*` values
-in `docker-compose.yml` and put keys in `.env`. For a public server, see
-[Self-hosting on a VPS](docs/DEPLOY.md).
+> `./aether` and the Docker setup are new: Neo4j, the API, admin keys, and
+> uploads are tested; the Ollama container steps are not yet. Please
+> [open an issue](https://github.com/dawitlabs/Aether/issues) if one fails.
 
 ## Command reference
 
 Run from the repository folder. `$KEY` is an API key (`ae_...`); `$ID` is an ID
 returned by an earlier command.
 
-### Run the stack (Docker)
+### `./aether`
 
 | Command | What it does |
 | --- | --- |
-| `docker compose up -d --build` | Start Neo4j, Ollama, and the API (`http://127.0.0.1:8000`) |
-| `docker compose down` | Stop everything; data is kept |
-| `docker compose down -v` | Stop and **delete all data** |
-| `docker compose ps` | Show what is running |
-| `docker compose logs -f api` | Follow API logs (JSON, no keys) |
-| `git pull && docker compose up -d --build` | Update to the latest version |
+| `./aether onboard` | First-time setup (safe to re-run) |
+| `./aether up` / `./aether down` | Start / stop; data is kept |
+| `./aether status` | Containers and API readiness |
+| `./aether logs` | Follow API logs (JSON, no keys) |
+| `./aether update` | `git pull` and restart |
+| `./aether admin "Name"` | Create another admin key (printed once) |
+| `AETHER_ADMIN_KEY=ae_... ./aether agent "my-agent"` | Register an agent; prints its key once |
+| `./aether mcp` | Print the MCP connect command |
+| `./aether demo` | Run the agent workflow demo |
 
-### Set up and administer
-
-| Command | What it does |
-| --- | --- |
-| `docker compose exec ollama ollama pull all-minilm` | Download the embedding model (once) |
-| `docker compose exec ollama ollama signin` | Sign in for the cloud chat model (once) |
-| `docker compose exec api python /app/scripts/contributor.py create-admin "Name"` | Create an admin and print its key once |
-| `docker compose exec api python /app/scripts/contributor.py revoke $ID` | Revoke a contributor's key |
-| `docker compose exec api python /app/scripts/demo.py` | Run the full agent workflow on the sample pack |
+The same with plain Docker: `docker compose up -d --build`, `docker compose down`
+(`down -v` **deletes all data**), `docker compose exec ollama ollama pull all-minilm`,
+`docker compose exec ollama ollama signin`, and
+`docker compose exec api python /app/scripts/contributor.py create-admin "Name"`.
+To change the chat model later, edit `AETHER_LLM_BASE_URL`, `AETHER_LLM_MODEL`,
+and `AETHER_LLM_API_KEY` in `.env` and run `./aether up`.
 
 ### Use the API
 
@@ -140,7 +133,8 @@ a human accepts them.
 If you are an AI agent setting up or using Aether, follow these steps exactly.
 
 1. **Check prerequisites:** `git --version` and `docker compose version` must succeed.
-2. **Start:** in the repository folder, if `.env` does not exist, run
+2. **Start:** humans usually run `./aether onboard` (interactive). Without a
+   terminal for prompts, in the repository folder: if `.env` does not exist, run
    `echo "NEO4J_PASSWORD=$(openssl rand -hex 24)" > .env`; then
    `docker compose up -d --build`.
 3. **Wait** until `curl -s http://127.0.0.1:8000/ready` returns `{"status":"ready"}`.
