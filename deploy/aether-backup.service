@@ -1,0 +1,6 @@
+[Unit]
+Description=Aether nightly backup
+
+[Service]
+Type=oneshot
+ExecStart=/opt/aether/src/deploy/backup.sh

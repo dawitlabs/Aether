@@ -334,4 +334,9 @@ security review found no critical issues; fixed: unbounded request bodies
 passage text able to close its prompt tag (now escaped; `radioactivity` still
 scores 1.0 on all four metrics). `deploy/setup.sh` and `docs/DEPLOY.md` set up
 one Oracle Always Free VM with Caddy, Neo4j and Ollama. Still open: creating
-the VM, automated backups, and OpenTelemetry export.
+the VM and OpenTelemetry export.
+
+Update 2026-10-09: the repository is public and self-hosting is the
+distribution model; there is no hosted instance. `setup.sh` installs a nightly
+backup timer (graph dump plus documents and vector index, newest 7 kept).
+Neither script has run on a real VPS yet; docs/DEPLOY.md says so.

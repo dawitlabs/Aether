@@ -80,9 +80,12 @@ rsync -a --delete --exclude .git --exclude .venv --exclude .local --exclude .env
   "$SRC"/ /opt/aether/src/
 [[ -d /opt/aether/venv ]] || python3.12 -m venv /opt/aether/venv
 /opt/aether/venv/bin/pip install -q --upgrade /opt/aether/src
-install -m 0644 /opt/aether/src/deploy/aether.service /etc/systemd/system/aether.service
+for unit in aether.service aether-backup.service aether-backup.timer; do
+  install -m 0644 "/opt/aether/src/deploy/$unit" "/etc/systemd/system/$unit"
+done
 systemctl daemon-reload
 systemctl enable aether
+systemctl enable --now aether-backup.timer
 systemctl restart aether
 
 echo "== caddy"

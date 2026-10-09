@@ -81,5 +81,22 @@ Anyone can read documents, the graph and claims, and ask `/query` (10 per
 minute per IP); only keys an admin creates can write. Never upload private
 documents. Request bodies over 2 MB are rejected by Caddy.
 
-Not set up yet: automated backups (Community edition dumps only while Neo4j is
-stopped; see [LOCAL_DATABASE.md](LOCAL_DATABASE.md)).
+## Backups
+
+`aether-backup.timer` runs nightly around 03:30 server time: it stops the API
+and Neo4j for about a minute (Community edition dumps only offline), writes
+the graph dump plus documents and vector index to
+`/var/backups/aether/<timestamp>/`, restarts both, and keeps the newest 7.
+Run one now with `sudo systemctl start aether-backup`. Copy backups off the VM
+yourself; a dead disk takes them with it.
+
+Restore:
+
+```sh
+sudo systemctl stop aether neo4j
+b=/var/backups/aether/<timestamp>
+sudo runuser -u neo4j -- neo4j-admin database load neo4j --from-path="$b" --overwrite-destination=true
+sudo find /var/lib/aether -mindepth 1 -maxdepth 1 ! -name llm-cache -exec rm -rf {} +
+sudo tar -C /var/lib/aether -xzf "$b/aether-files.tar.gz"
+sudo systemctl start neo4j aether
+```
