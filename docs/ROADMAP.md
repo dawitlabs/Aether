@@ -277,7 +277,7 @@ process, and counters are in-process. Export both when the API scales out.
 
 ## 5. Agent integrator docs
 
-- [ ] `docs/AGENTS.md` and a tested, dependency-free example client.
+- [x] `docs/AGENTS.md` and a tested, dependency-free example client.
 
 ## 6. First domain pack
 
