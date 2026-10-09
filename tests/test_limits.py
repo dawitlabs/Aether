@@ -17,3 +17,13 @@ def test_sliding_window_blocks_then_recovers():
     limiter.check("b", limit=2)
     now[0] = 60
     limiter.check("a", limit=2)
+
+
+def test_idle_keys_are_forgotten():
+    now = [0.0]
+    limiter = RateLimiter(clock=lambda: now[0])
+    for ip in range(100):
+        limiter.check(f"query:{ip}", limit=1)
+    now[0] = 61
+    limiter.check("query:new", limit=1)
+    assert list(limiter._hits) == ["query:new"]

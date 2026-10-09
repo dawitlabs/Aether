@@ -18,11 +18,17 @@ class RateLimiter:
         self._clock = clock
         self._hits: dict[str, deque[float]] = {}
         self._lock = threading.Lock()
+        self._swept = clock()
 
     def check(self, key: str, limit: int, window: float = 60.0) -> None:
         """Count one hit for key; raise 429 with Retry-After once over the limit."""
         now = self._clock()
         with self._lock:
+            # Once per window, forget keys with no hits inside it; otherwise every
+            # client IP ever seen stays in memory.
+            if now - self._swept >= window:
+                self._hits = {k: v for k, v in self._hits.items() if v[-1] > now - window}
+                self._swept = now
             hits = self._hits.setdefault(key, deque())
             while hits and hits[0] <= now - window:
                 hits.popleft()
