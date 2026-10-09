@@ -1,0 +1,24 @@
+{
+  "name": "Curie sample",
+  "description": "Four short hand-written passages about the Curie family, used as the original Phase 2 evaluation set.",
+  "license": "MIT (written for this repository)",
+  "retrieved": "2026-10-08",
+  "sources": [
+    {
+      "file": "curie.txt",
+      "title": "curie"
+    },
+    {
+      "file": "institute.txt",
+      "title": "institute"
+    },
+    {
+      "file": "joliot.txt",
+      "title": "joliot"
+    },
+    {
+      "file": "nobel.txt",
+      "title": "nobel"
+    }
+  ]
+}

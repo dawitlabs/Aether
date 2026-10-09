@@ -43,4 +43,19 @@ def test_summary_averages_present_values():
     scores = [score(golden, answer("x", DOC_A), NAMES), score(unanswerable, answer("no"), NAMES)]
     assert summarize(scores) == {
         "keyword_recall": 1.0, "citation_precision": 1.0, "abstention_accuracy": 1.0,
+        "foreign_citation_share": 0.0,
     }
+
+
+def test_foreign_citations_are_reported_not_scored_and_keywords_take_alternatives():
+    golden = Golden(question="q", mode="local", keywords=["induced|artificial"],
+                    documents=["a.txt"])
+    result = score(golden, answer("Artificial radioactivity.", DOC_A, uuid4()), NAMES)
+    assert result.keyword_recall == 1.0
+    assert (result.citation_precision, result.citations, result.foreign_citations) == (1.0, 2, 1)
+    assert summarize([result])["foreign_citation_share"] == 0.5
+
+
+def test_keyword_matching_ignores_dash_variants():
+    golden = Golden(question="q", mode="local", keywords=["Joliot-Curie"], documents=["a.txt"])
+    assert score(golden, answer("Irène Joliot‑Curie", DOC_A), NAMES).keyword_recall == 1.0
