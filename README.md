@@ -15,32 +15,59 @@ proposing claims that humans review.
   rate limits, and a committed OpenAPI contract.
 - **Any OpenAI-compatible model.** Defaults to Ollama; runs locally.
 
-## Quickstart (local)
+## Quickstart (Docker)
 
-Needs [Nix](https://nixos.org/download) with flakes (the dev shell targets
-`x86_64-linux`) and [Ollama](https://ollama.com).
+Works on Linux, macOS, and Windows with Docker Compose.
 
 ```sh
 git clone https://github.com/dawitlabs/Aether.git && cd Aether
-nix develop
-python -m venv .venv && source .venv/bin/activate
-python -m pip install -e ".[dev]"
+echo "NEO4J_PASSWORD=$(openssl rand -hex 24)" > .env
+docker compose up -d --build
 
-python scripts/local_neo4j.py init     # writes .env with a random password
-python scripts/local_neo4j.py start
-ollama pull all-minilm && ollama signin  # embeddings + the gpt-oss:120b-cloud chat model
-
-python scripts/demo.py --domain radioactivity
+docker compose exec ollama ollama pull all-minilm   # embeddings
+docker compose exec ollama ollama signin            # chat model gpt-oss:120b-cloud
+docker compose exec api python /app/scripts/contributor.py create-admin "Your Name"
 ```
 
-The demo builds a graph from the bundled `radioactivity` pack, then an agent
-asks questions, proposes a claim, and sees it used once a human accepts it.
-
-To run the API instead:
+The last command prints an admin key once. The API is at
+`http://127.0.0.1:8000` (docs at `/docs`). Try the whole agent workflow on the
+bundled `radioactivity` pack:
 
 ```sh
-python scripts/contributor.py create-admin "Your Name"   # prints an admin key once
-uvicorn --factory aether.api.app:create_app              # http://127.0.0.1:8000/docs
+docker compose exec api python /app/scripts/demo.py
+```
+
+To use another OpenAI-compatible provider, edit the `LLM_*`/`EMBED_*` values
+in `docker-compose.yml` and put keys in `.env`. For a public server, see
+[Self-hosting on a VPS](docs/DEPLOY.md).
+
+## Use it from an agent (MCP)
+
+`examples/mcp_server.py` exposes Aether to MCP clients such as Claude Code,
+Cursor, or OpenClaw: `aether_query`, `aether_search_entities`,
+`aether_neighborhood`, and `aether_propose_claim`.
+
+```sh
+pip install "mcp==2.3.0"
+claude mcp add aether -e AETHER_URL=http://127.0.0.1:8000 -e AETHER_API_KEY=ae_... \
+  -- python /path/to/Aether/examples/mcp_server.py
+```
+
+Querying works without a key; proposing claims needs an agent key from an
+admin ([AGENTS.md](docs/AGENTS.md)). Proposed claims affect answers only after
+a human accepts them.
+
+## Development (Nix)
+
+The dev shell targets `x86_64-linux`; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+```sh
+nix develop
+python -m venv .venv && source .venv/bin/activate
+python -m pip install -e ".[dev,mcp]"
+python scripts/local_neo4j.py init && python scripts/local_neo4j.py start
+ollama pull all-minilm && ollama signin
+python scripts/demo.py
 ```
 
 ## Evaluation
