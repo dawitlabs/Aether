@@ -22,14 +22,12 @@ A free option is Oracle Cloud's Always Free tier:
 
 If the region reports "out of capacity", retry later.
 
-## 2. Copy the code and run setup
-
-From a checkout of this repository:
+## 2. Clone and run setup
 
 ```sh
-rsync -a --exclude .git --exclude .venv --exclude .local --exclude .env \
-  ./ ubuntu@<ip>:aether/
-ssh ubuntu@<ip> sudo bash aether/deploy/setup.sh <ip>
+ssh ubuntu@<ip>
+git clone https://github.com/dawitlabs/Aether.git aether
+sudo bash aether/deploy/setup.sh <ip>
 ```
 
 `setup.sh` installs Neo4j, Caddy, Ollama and the API, generates the database
@@ -67,7 +65,11 @@ Logs: `journalctl -u aether -f` (JSON, no keys or PII).
 
 ## Updating
 
-Re-run step 2. Data, the database password and the Ollama sign-in are kept.
+```sh
+cd aether && git pull && sudo bash deploy/setup.sh <ip>
+```
+
+Data, the database password and the Ollama sign-in are kept.
 
 ## Exposure
 

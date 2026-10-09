@@ -3,7 +3,7 @@
 #
 #   sudo bash deploy/setup.sh <public-ip>
 #
-# Run from a copy of the repository on the VM (see docs/DEPLOY.md). Safe to
+# Run from a clone of the repository on the VM (see docs/DEPLOY.md). Safe to
 # re-run: it updates the code and restarts the API, keeping data and secrets.
 set -euo pipefail
 
