@@ -1,68 +1,48 @@
 {
   "name": "History of radioactivity",
-  "description": "Lead sections of ten English Wikipedia articles on the discovery of radioactivity and the people involved.",
-  "license": "CC BY-SA 4.0 (text by Wikipedia contributors; see each source URL and revision)",
+  "description": "Ten short original summaries on the discovery of radioactivity and the people and institutions involved.",
+  "license": "MIT (written for this repository)",
   "retrieved": "2026-10-09",
   "sources": [
     {
-      "file": "curie-institute-paris.txt",
-      "title": "Curie Institute (Paris)",
-      "url": "https://en.wikipedia.org/wiki/Curie_Institute_(Paris)",
-      "revision": 1378472169
-    },
-    {
       "file": "ernest-rutherford.txt",
-      "title": "Ernest Rutherford",
-      "url": "https://en.wikipedia.org/wiki/Ernest_Rutherford",
-      "revision": 1378698072
+      "title": "Ernest Rutherford"
     },
     {
       "file": "frederic-joliot-curie.txt",
-      "title": "Frédéric Joliot-Curie",
-      "url": "https://en.wikipedia.org/wiki/Frédéric_Joliot-Curie",
-      "revision": 1376806614
+      "title": "Frédéric Joliot-Curie"
     },
     {
       "file": "henri-becquerel.txt",
-      "title": "Henri Becquerel",
-      "url": "https://en.wikipedia.org/wiki/Henri_Becquerel",
-      "revision": 1377509069
+      "title": "Henri Becquerel"
     },
     {
       "file": "irene-joliot-curie.txt",
-      "title": "Irène Joliot-Curie",
-      "url": "https://en.wikipedia.org/wiki/Irène_Joliot-Curie",
-      "revision": 1379276489
+      "title": "Irène Joliot-Curie"
     },
     {
       "file": "marie-curie.txt",
-      "title": "Marie Curie",
-      "url": "https://en.wikipedia.org/wiki/Marie_Curie",
-      "revision": 1378672573
+      "title": "Marie Curie"
     },
     {
       "file": "pierre-curie.txt",
-      "title": "Pierre Curie",
-      "url": "https://en.wikipedia.org/wiki/Pierre_Curie",
-      "revision": 1377301153
+      "title": "Pierre Curie"
     },
     {
       "file": "polonium.txt",
-      "title": "Polonium",
-      "url": "https://en.wikipedia.org/wiki/Polonium",
-      "revision": 1379218882
+      "title": "Polonium"
     },
     {
       "file": "radioactive-decay.txt",
-      "title": "Radioactive decay",
-      "url": "https://en.wikipedia.org/wiki/Radioactive_decay",
-      "revision": 1377221715
+      "title": "Radioactive decay"
+    },
+    {
+      "file": "radium-institute.txt",
+      "title": "Radium Institute"
     },
     {
       "file": "radium.txt",
-      "title": "Radium",
-      "url": "https://en.wikipedia.org/wiki/Radium",
-      "revision": 1377859532
+      "title": "Radium"
     }
   ]
 }

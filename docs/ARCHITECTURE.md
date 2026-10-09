@@ -187,7 +187,7 @@ Evaluation and domain packs (`src/aether/evaluation.py`, `src/aether/domains.py`
   with URLs and revisions), `corpus/*.txt`, and `golden.jsonl` (questions with
   mode, keywords, expected source files, and `answerable`). `tests/test_domains.py`
   validates every pack. Packs: `curie-sample` (hand-written, MIT) and
-  `radioactivity` (ten Wikipedia lead sections, CC BY-SA 4.0).
+  `radioactivity` (ten original summaries, MIT).
 - `python scripts/eval.py --domain <slug>` scores keyword recall (alternatives
   as `a|b`), citation precision over the pack's own documents, abstention, and
   the share of citations into documents outside the pack. The graph is shared,

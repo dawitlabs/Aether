@@ -6,7 +6,7 @@
 {"question": "Which chemical element is named in Marie Curie's honour?", "mode": "local", "keywords": ["curium"], "documents": ["marie-curie.txt"]}
 {"question": "Who shared the 1903 Nobel Prize in Physics?", "mode": "hybrid", "keywords": ["Becquerel", "Pierre", "Marie"], "documents": ["henri-becquerel.txt", "marie-curie.txt", "pierre-curie.txt"]}
 {"question": "Who isolated radium in its metallic state in 1910?", "mode": "hybrid", "keywords": ["Debierne"], "documents": ["radium.txt"]}
-{"question": "What are the main themes connecting these documents?", "mode": "global", "keywords": ["radioactivity", "Nobel"], "documents": ["curie-institute-paris.txt", "ernest-rutherford.txt", "frederic-joliot-curie.txt", "henri-becquerel.txt", "irene-joliot-curie.txt", "marie-curie.txt", "pierre-curie.txt", "polonium.txt", "radioactive-decay.txt", "radium.txt"]}
+{"question": "What are the main themes connecting these documents?", "mode": "global", "keywords": ["radioactivity", "Nobel"], "documents": ["radium-institute.txt", "ernest-rutherford.txt", "frederic-joliot-curie.txt", "henri-becquerel.txt", "irene-joliot-curie.txt", "marie-curie.txt", "pierre-curie.txt", "polonium.txt", "radioactive-decay.txt", "radium.txt"]}
 {"question": "How did the Curie family contribute to science across generations?", "mode": "global", "keywords": ["Marie", "Irène", "Nobel"], "documents": ["marie-curie.txt", "pierre-curie.txt", "irene-joliot-curie.txt", "frederic-joliot-curie.txt", "polonium.txt", "radium.txt"]}
 {"question": "Who discovered penicillin?", "mode": "hybrid", "keywords": [], "documents": [], "answerable": false}
 {"question": "What is the half-life of uranium-235?", "mode": "hybrid", "keywords": [], "documents": [], "answerable": false}

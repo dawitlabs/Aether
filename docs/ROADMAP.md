@@ -304,3 +304,10 @@ Not done: public hosting (needs a deployment decision and a security review
 before the API leaves loopback) and OpenTelemetry export. Phase 5 of the
 supplied roadmap (governance, federation, sustainability) is ongoing work
 without code milestones.
+
+Update 2026-10-09: the `radioactivity` pack's Wikipedia text (CC BY-SA 4.0)
+was replaced with ten original summaries under MIT, covering the same topics
+so the golden questions still apply. The evaluation figures above were
+measured on the Wikipedia text; rerun `python scripts/eval.py --domain
+radioactivity` for current numbers.
+
