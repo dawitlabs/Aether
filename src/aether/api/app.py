@@ -18,7 +18,9 @@ from neo4j import Driver, GraphDatabase
 from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import BaseModel, ConfigDict, Field
 
-from aether.api import errors
+from aether.api import errors, observability
+from aether.api.observability import API_PREFIX
+from aether.api.admin import router as admin_router
 from aether.api.auth import require
 from aether.api.claims import router as claims_router
 from aether.api.contributors import router as contributors_router
@@ -39,7 +41,6 @@ from aether.storage.schema import SCHEMA_VERSION, ensure_schema
 from aether.storage.text_units import Neo4jTextUnitStore
 
 log = logging.getLogger("aether.api")
-API_PREFIX = "/api/v0"
 VERSION = metadata.version("aether")
 MAX_UPLOAD_BYTES = 1_048_576
 UNAVAILABLE = {"description": "Database unavailable"}
@@ -129,6 +130,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.config = config
     app.state.limiter = RateLimiter()
     errors.install(app)
+    observability.configure_logging()
+    observability.install(app)
     api = APIRouter()
 
     @app.get("/health")
@@ -256,7 +259,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"version": VERSION, "api": "v0", "schema": SCHEMA_VERSION,
                 "extract_prompt": PROMPT_VERSION}
 
-    for router in (api, graph_router, contributors_router, claims_router, merges_router):
+    routers = (api, graph_router, contributors_router, claims_router, merges_router, admin_router)
+    for router in routers:
         app.include_router(router, prefix=API_PREFIX)
     return app
 

@@ -38,6 +38,9 @@ class LLMClient:
         self._timeout = timeout
         self._retries = retries
         self._cache_dir = cache_dir
+        # In-process counters for /admin/stats; plain ints, approximate under threads.
+        self.calls = 0
+        self.cache_hits = 0
 
     def _cache_path(self, system: str, user: str) -> Path | None:
         if self._cache_dir is None:
@@ -51,6 +54,7 @@ class LLMClient:
             try:
                 cached = json.loads(path.read_text())
                 if isinstance(cached, dict):
+                    self.cache_hits += 1
                     return cached
             except (OSError, json.JSONDecodeError):
                 pass
@@ -92,6 +96,7 @@ class LLMClient:
         return vectors
 
     def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        self.calls += 1
         headers = {"Content-Type": "application/json"}
         if self._api_key:
             headers["Authorization"] = f"Bearer {self._api_key}"

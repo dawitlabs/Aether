@@ -137,3 +137,12 @@ def test_admin_revokes_keys_over_the_api(client, auth, make_contributor):
                        headers=bearer(plain)).status_code == 403
     assert client.post(f"/contributors/{target.id}/revoke", headers=auth).status_code == 204
     assert client.get("/contributors/me", headers=bearer(key)).status_code == 401
+
+
+def test_admin_stats_are_admin_only(client, auth, make_contributor):
+    _, plain = make_contributor()
+    assert client.get("/admin/stats", headers=bearer(plain)).status_code == 403
+    stats = client.get("/admin/stats", headers=auth).json()
+    assert {"documents", "text_units", "active_entities"} <= stats["graph"].keys()
+    assert {"calls", "cache_hits"} == stats["llm"].keys()
+    assert stats["requests"].get("2xx", 0) >= 0

@@ -232,6 +232,18 @@ Claim rules (`api/claims.py`, `storage/claims.py`, ADR-0002):
   The store's `create_claim` still refuses verified claims: review is the only
   path to `verified`.
 
+Observability (`api/observability.py`, `api/admin.py`):
+
+- The `aether` logger writes one JSON object per line: `ts`, `level`,
+  `logger`, `message`, `request_id`, plus event fields.
+- Every response carries `X-Request-ID` (the caller's, if it is 1–64
+  letters, digits, or dashes; otherwise generated). Each request logs
+  `http.request` with method, route template, status, and `duration_ms`;
+  query strings and headers are never logged.
+- `GET /api/v0/admin/stats` (admin) returns graph counts, claims by status,
+  responses by status class, LLM calls and cache hits, and uptime. Counters
+  are per process.
+
 ## Local operation
 
 Neo4j runs separately from the Python application. Bind the development database

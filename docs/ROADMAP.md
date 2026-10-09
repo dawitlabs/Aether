@@ -269,8 +269,11 @@ Phase 5 in the supplied roadmap is ongoing governance work, not milestones.
 
 ## 4. Observability
 
-- [ ] Structured JSON logs with request IDs and timing; no PII or keys.
-- [ ] `GET /api/v0/admin/stats` for graph counts and request metrics.
+- [x] Structured JSON logs with request IDs and timing; no PII or keys.
+- [x] `GET /api/v0/admin/stats` for graph counts and request metrics.
+
+OpenTelemetry tracing is deferred: request IDs correlate logs within one
+process, and counters are in-process. Export both when the API scales out.
 
 ## 5. Agent integrator docs
 
